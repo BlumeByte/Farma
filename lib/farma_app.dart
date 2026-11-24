@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'farma_portal.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
@@ -26,7 +28,7 @@ class FarmaApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
-      home: const FarmaHome(),
+      home: const FarmaPortal(),
     );
   }
 
@@ -56,7 +58,14 @@ class FarmaApp extends StatelessWidget {
 }
 
 class FarmaHome extends StatefulWidget {
-  const FarmaHome({super.key});
+  const FarmaHome({
+    required this.accountId,
+    required this.onSignOut,
+    super.key,
+  });
+
+  final String accountId;
+  final VoidCallback onSignOut;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -64,6 +73,7 @@ class FarmaHome extends StatefulWidget {
 
 class _FarmaHomeState extends State<FarmaHome> {
   final storage = SharedPreferencesAsync();
+  String get storageKey => 'farma.entries.v1.${widget.accountId}';
   Workspace workspace = Workspace.overview;
   List<FieldEntry> entries = [];
   bool loading = true;
@@ -78,7 +88,7 @@ class _FarmaHomeState extends State<FarmaHome> {
 
   Future<void> _load() async {
     try {
-      final saved = await storage.getString('farma.entries.v1');
+      final saved = await storage.getString(storageKey);
       final decoded = saved == null ? <dynamic>[] : jsonDecode(saved) as List;
       final restored = decoded
           .map((entry) => FieldEntry.fromJson(entry as Map<String, dynamic>))
@@ -108,7 +118,7 @@ class _FarmaHomeState extends State<FarmaHome> {
     final updated = [entry, ...entries];
     try {
       await storage.setString(
-        'farma.entries.v1',
+        storageKey,
         jsonEncode(updated.map((e) => e.toJson()).toList()),
       );
       if (!mounted) return;
@@ -137,10 +147,10 @@ class _FarmaHomeState extends State<FarmaHome> {
           'Farma',
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.9),
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Center(child: Text('Local workspace')),
+        actions: [
+          TextButton(
+            onPressed: widget.onSignOut,
+            child: const Text('Sign out'),
           ),
         ],
       ),

@@ -3,7 +3,7 @@ AI-driven mobile and web platform that empowers farmers with instant crop and li
 
 ## Flutter workspace
 
-The current workspace targets Android, iOS and web. It includes a responsive monochrome interface and local photo records for field observations and produce drafts. It can save and reopen records on the same device once the app is running. Web startup without a connection and device-to-device sync are outside this build. The current local store is for small trial datasets.
+The current workspace targets Android, iOS and web. It includes a responsive monochrome interface and local photo records for field observations and produce drafts. It can save and reopen records on the same device once the app is running. Web startup without a connection and device-to-device sync are outside this build. The public site opens before sign-in. The current local store is for small trial datasets and separates records by Farma account on the device.
 
 Use Flutter 3.50.1:
 
@@ -24,7 +24,7 @@ The v3.1 product specification and the Operations & Field Console blueprint are 
 | --- | --- |
 | Field workspace | Local observation history, categories, notes and photo capture/selection |
 | Produce showcase | Local photo drafts. Publishing, buyer discovery, short videos and messaging are pending |
-| Supabase | Authentication, storage, realtime, device sync and role policies are pending access to the Farma project |
+| Supabase | Email/password sign-in for existing Farma accounts. Storage, realtime, device sync and role policies are pending |
 | Operations web console | District and partner access, aggregate reporting, review queues, verification and campaign management are pending |
 | Models and safety | The workspace records observations only. Validated diagnostic results and professional escalation are outside this build |
 | Commercial rollout | Verification billing, advertising, payments and delivery remain pending |
