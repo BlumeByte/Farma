@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-import 'farma_app.dart';
+import 'farma_onboarding.dart';
 import 'farma_auth.dart';
 import 'farma_public_page.dart';
 
@@ -33,7 +33,8 @@ class _FarmaPortalState extends State<FarmaPortal> {
   Widget build(BuildContext context) {
     final userId = accountId;
     if (userId != null) {
-      return FarmaHome(
+      return FarmaOnboarding(
+        key: ValueKey(userId),
         accountId: userId,
         onSignOut: () => setState(() {
           accountId = null;

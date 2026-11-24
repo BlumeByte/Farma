@@ -4,10 +4,36 @@ import 'dart:typed_data';
 import 'package:farma/auth_languages.dart';
 import 'package:farma/calling_countries.dart';
 import 'package:farma/farma_app.dart';
+import 'package:farma/farma_onboarding.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('First-use onboarding lets a buyer choose and change language', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: FarmaOnboarding(accountId: 'test', onSignOut: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Choose your language'), findsOneWidget);
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    expect(find.text('Farmer Mode'), findsOneWidget);
+    await tester.tap(find.text('Buyer Mode'));
+    await tester.pumpAndSettle();
+    expect(find.text('Marketplace'), findsOneWidget);
+    await tester.tap(find.text('Change mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Language · English'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hausa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Yanayin mai saye'), findsOneWidget);
+  });
+
   test('Auth translations and international calling codes are complete', () {
     for (final language in authLanguages.values) {
       expect(language.strings, hasLength(AuthText.values.length));
