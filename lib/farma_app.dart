@@ -61,11 +61,13 @@ class FarmaHome extends StatefulWidget {
   const FarmaHome({
     required this.accountId,
     required this.onSignOut,
+    required this.onChangeMode,
     super.key,
   });
 
   final String accountId;
   final VoidCallback onSignOut;
+  final VoidCallback onChangeMode;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -108,14 +110,20 @@ class _FarmaHomeState extends State<FarmaHome> {
     }
   }
 
-  Future<void> _add(Workspace kind) async {
+  Future<void> _save(Workspace kind, {FieldEntry? existing}) async {
+    if (saving) return;
     final entry = await showDialog<FieldEntry>(
       context: context,
-      builder: (_) => EntryEditor(kind: kind),
+      builder: (_) => EntryEditor(kind: kind, existing: existing),
     );
     if (entry == null || !mounted) return;
     setState(() => saving = true);
-    final updated = [entry, ...entries];
+    final updated = existing == null
+        ? [entry, ...entries]
+        : [
+            for (final item in entries)
+              identical(item, existing) ? entry : item,
+          ];
     try {
       await storage.setString(
         storageKey,
@@ -148,6 +156,11 @@ class _FarmaHomeState extends State<FarmaHome> {
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.9),
         ),
         actions: [
+          IconButton(
+            onPressed: widget.onChangeMode,
+            tooltip: 'Change mode',
+            icon: const Icon(Icons.swap_horiz),
+          ),
           TextButton(
             onPressed: widget.onSignOut,
             child: const Text('Sign out'),
@@ -295,7 +308,7 @@ class _FarmaHomeState extends State<FarmaHome> {
       Align(
         alignment: Alignment.centerLeft,
         child: FilledButton.icon(
-          onPressed: saving ? null : () => _add(workspace),
+          onPressed: saving ? null : () => _save(workspace),
           icon: const Icon(Icons.add),
           label: Text(produce ? 'New produce draft' : 'New observation'),
         ),
@@ -327,29 +340,38 @@ class _FarmaHomeState extends State<FarmaHome> {
                 '${entry.category} · ${MaterialLocalizations.of(context).formatShortDate(entry.date.toLocal())}',
               ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => showDialog<void>(
-                context: context,
-                builder: (dialogContext) => AlertDialog(
-                  title: Text(entry.title),
-                  scrollable: true,
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (entry.photo != null)
-                        Image.memory(entry.photo!, fit: BoxFit.contain),
-                      Text(entry.category),
-                      if (entry.notes.isNotEmpty) Text(entry.notes),
+              onTap: () async {
+                final edit = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: Text(entry.title),
+                    scrollable: true,
+                    content: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (entry.photo != null)
+                          Image.memory(entry.photo!, fit: BoxFit.contain),
+                        Text(entry.category),
+                        if (entry.notes.isNotEmpty) Text(entry.notes),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Close'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext, true),
+                        child: const Text('Edit'),
+                      ),
                     ],
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Close'),
-                    ),
-                  ],
-                ),
-              ),
+                );
+                if (edit == true && mounted) {
+                  await _save(entry.kind, existing: entry);
+                }
+              },
             ),
           ),
         ),
@@ -402,7 +424,8 @@ class FieldEntry {
 }
 
 class EntryEditor extends StatefulWidget {
-  const EntryEditor({super.key, required this.kind});
+  const EntryEditor({super.key, required this.kind, this.existing});
+  final FieldEntry? existing;
   final Workspace kind;
 
   @override
@@ -411,10 +434,10 @@ class EntryEditor extends StatefulWidget {
 
 class _EntryEditorState extends State<EntryEditor> {
   final form = GlobalKey<FormState>();
-  final title = TextEditingController();
-  final notes = TextEditingController();
-  late String category = categories.first;
-  Uint8List? photo;
+  late final title = TextEditingController(text: widget.existing?.title);
+  late final notes = TextEditingController(text: widget.existing?.notes);
+  late String category = widget.existing?.category ?? categories.first;
+  late Uint8List? photo = widget.existing?.photo;
   String? photoError;
   bool picking = false;
 
@@ -462,7 +485,11 @@ class _EntryEditorState extends State<EntryEditor> {
   Widget build(BuildContext context) {
     final platform = Theme.of(context).platform;
     return AlertDialog(
-      title: Text(produce ? 'New produce draft' : 'New observation'),
+      title: Text(
+        widget.existing == null
+            ? (produce ? 'New produce draft' : 'New observation')
+            : (produce ? 'Edit produce draft' : 'Edit observation'),
+      ),
       scrollable: true,
       content: SizedBox(
         width: 440,
@@ -557,7 +584,7 @@ class _EntryEditorState extends State<EntryEditor> {
                       title: title.text.trim(),
                       category: category,
                       notes: notes.text.trim(),
-                      date: DateTime.now().toUtc(),
+                      date: widget.existing?.date ?? DateTime.now().toUtc(),
                       photo: photo,
                     ),
                   );
