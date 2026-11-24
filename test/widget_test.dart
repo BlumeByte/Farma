@@ -1,11 +1,32 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:farma/auth_languages.dart';
+import 'package:farma/calling_countries.dart';
 import 'package:farma/farma_app.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('Auth translations and international calling codes are complete', () {
+    for (final language in authLanguages.values) {
+      expect(language.strings, hasLength(AuthText.values.length));
+      expect(language.strings, everyElement(isNotEmpty));
+    }
+    expect(
+      callingCountries.map((country) => country.iso).toSet(),
+      hasLength(callingCountries.length),
+    );
+    expect(
+      callingCountries.firstWhere((country) => country.iso == 'GH').dial,
+      '+233',
+    );
+    expect(
+      callingCountries.firstWhere((country) => country.iso == 'JP').dial,
+      '+81',
+    );
+  });
+
   testWidgets('Public pages precede the signed-in workspace', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 800);
@@ -27,9 +48,9 @@ void main() {
 
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
-    expect(find.text('Sign in to Farma'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
     expect(find.byType(FarmaHome), findsNothing);
-    await tester.tap(find.widgetWithText(TextButton, 'Farma'));
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
     expect(
       find.text('Keep track of what happens in the field.'),
