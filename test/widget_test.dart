@@ -22,9 +22,40 @@ void main() {
       '+233',
     );
     expect(
+      callingCountries
+          .firstWhere((country) => country.iso == 'GH')
+          .internationalize('0241234567'),
+      '+233241234567',
+    );
+    expect(
       callingCountries.firstWhere((country) => country.iso == 'JP').dial,
       '+81',
     );
+  });
+
+  testWidgets('Phone-width signup localizes and shows international fields', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const FarmaApp());
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Language'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Español'));
+    await tester.pumpAndSettle();
+    expect(find.text('Te damos la bienvenida de nuevo'), findsOneWidget);
+
+    await tester.tap(find.text('¿Eres nuevo en Farma? Regístrate'));
+    await tester.pumpAndSettle();
+    expect(find.text('Crea tu cuenta'), findsOneWidget);
+    expect(find.text('Nombre de usuario'), findsOneWidget);
+    expect(find.text('País o territorio'), findsOneWidget);
+    expect(find.text('Número de teléfono'), findsOneWidget);
+    expect(find.byType(FarmaHome), findsNothing);
   });
 
   testWidgets('Public pages precede the signed-in workspace', (tester) async {
@@ -40,9 +71,18 @@ void main() {
     expect(find.byType(FarmaHome), findsNothing);
 
     for (final page in ['About us', 'Profile', 'Projects', 'Services']) {
-      await tester.tap(find.widgetWithText(TextButton, page));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.widgetWithText(TextButton, page),
+        ),
+      );
       await tester.pumpAndSettle();
-      expect(find.text(page), findsNWidgets(2));
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: find.text(page)),
+        findsOneWidget,
+      );
+      expect(find.text(page).hitTestable(), findsAtLeastNWidgets(2));
       expect(find.byType(FarmaHome), findsNothing);
     }
 

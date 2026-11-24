@@ -87,10 +87,7 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
 
   String get _internationalPhone {
     final number = _phone.text.replaceAll(RegExp(r'[\s().-]'), '');
-    if (number.startsWith('+')) return number;
-    // Ask for the national significant number. Some countries retain a zero
-    // in E.164, so a leading zero is never silently removed here.
-    return '${_country.dial}$number';
+    return _country.internationalize(number);
   }
 
   @override

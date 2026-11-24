@@ -22,6 +22,10 @@ The sign-in and signup screens use the device light or dark theme and offer nine
 
 Apply the versioned Supabase migration before rolling out signup to a new environment. The Auth trigger normalizes and reserves usernames in a private table. Existing accounts can sign in with their email.
 
+## Public website
+
+Home, About us, Profile, Projects and Services describe the current trial and planned work. The two short, captioned walkthroughs and the illustrative black-and-white photographs are original site assets. The videos are silent and playable on demand.
+
 ## Implementation status
 
 The v3.1 product specification and the Operations & Field Console blueprint are the baseline. Commercial features retain the phase boundaries in v3.1.
