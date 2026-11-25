@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
@@ -25,6 +26,8 @@ class ProduceMarketplace {
     required String title,
     required String category,
     required String description,
+    Uint8List? photo,
+    String? photoDescription,
   }) async {
     final response = await http.post(
       _endpoint({'on_conflict': 'owner_id,draft_created_at'}),
@@ -35,6 +38,8 @@ class ProduceMarketplace {
         'title': title,
         'category': category,
         'description': description,
+        'photo_base64': photo == null ? null : base64Encode(photo),
+        'photo_description': photo == null ? null : photoDescription,
         'published': true,
         'published_at': DateTime.now().toUtc().toIso8601String(),
       }),
@@ -51,7 +56,11 @@ class ProduceMarketplace {
         'select': 'draft_created_at',
       }),
       headers: {..._headers, 'Prefer': 'return=representation'},
-      body: jsonEncode({'published': false}),
+      body: jsonEncode({
+        'published': false,
+        'photo_base64': null,
+        'photo_description': null,
+      }),
     ).timeout(const Duration(seconds: 12));
     _check(response);
     return (jsonDecode(response.body) as List).isNotEmpty;
@@ -61,22 +70,34 @@ class ProduceMarketplace {
     final response = await http.get(
       _endpoint({
         'published': 'eq.true',
-        'select': 'title,category,description',
+        'select': 'owner_id,draft_created_at,title,category,description,photo_description',
         'order': 'published_at.desc',
         'limit': '100',
       }),
       headers: _headers,
     ).timeout(const Duration(seconds: 12));
     _check(response);
-    return (jsonDecode(response.body) as List).map((item) {
-      final row = item as Map<String, dynamic>;
-      return ProduceListing(
-        title: row['title'] as String,
-        category: row['category'] as String,
-        description: row['description'] as String,
-      );
-    }).toList();
+    return _listings(response);
   }
+
+  Future<ProduceListing?> open(ProduceListing item) async {
+    final response = await http.get(
+      _endpoint({
+        'owner_id': 'eq.${item.ownerId}',
+        'draft_created_at': 'eq.${item.draftCreatedAt}',
+        'published': 'eq.true',
+        'select': 'owner_id,draft_created_at,title,category,description,photo_description,photo_base64',
+      }),
+      headers: _headers,
+    ).timeout(const Duration(seconds: 12));
+    _check(response);
+    return _listings(response).firstOrNull;
+  }
+
+  List<ProduceListing> _listings(http.Response response) =>
+      (jsonDecode(response.body) as List)
+          .map((item) => ProduceListing.fromJson(item as Map<String, dynamic>))
+          .toList();
 
   void _check(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -87,13 +108,76 @@ class ProduceMarketplace {
 
 class ProduceListing {
   const ProduceListing({
+    required this.ownerId,
+    required this.draftCreatedAt,
     required this.title,
     required this.category,
     required this.description,
+    this.photo,
+    this.photoDescription,
   });
+
+  factory ProduceListing.fromJson(Map<String, dynamic> row) {
+    final photo = row['photo_base64'] as String?;
+    return ProduceListing(
+      ownerId: row['owner_id'] as String,
+      draftCreatedAt: row['draft_created_at'] as String,
+      title: row['title'] as String,
+      category: row['category'] as String,
+      description: row['description'] as String,
+      photoDescription: row['photo_description'] as String?,
+      photo: photo == null ? null : base64Decode(photo),
+    );
+  }
+
+  final String ownerId;
+  final String draftCreatedAt;
   final String title;
   final String category;
   final String description;
+  final Uint8List? photo;
+  final String? photoDescription;
+}
+
+class ProduceListingDetails extends StatelessWidget {
+  const ProduceListingDetails({
+    required this.title,
+    required this.category,
+    required this.description,
+    this.photo,
+    this.photoDescription,
+    super.key,
+  });
+
+  final String title;
+  final String category;
+  final String description;
+  final Uint8List? photo;
+  final String? photoDescription;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Text(title, style: Theme.of(context).textTheme.titleLarge),
+      Text(category),
+      if (photo != null) ...[
+        const SizedBox(height: 12),
+        Image.memory(
+          photo!,
+          height: 180,
+          fit: BoxFit.contain,
+          semanticLabel: photoDescription ?? 'Photo of $title',
+          errorBuilder: (_, _, _) => const Text('Photo could not be displayed.'),
+        ),
+      ],
+      if (description.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        Text(description),
+      ],
+    ],
+  );
 }
 
 class ProduceBrowse extends StatefulWidget {
@@ -154,24 +238,53 @@ class _ProduceBrowseState extends State<ProduceBrowse> {
                 Card(
                   child: ListTile(
                     title: Text(item.title),
-                    subtitle: Text(item.category),
+                    subtitle: Text(item.photoDescription == null
+                        ? item.category
+                        : '${item.category} · Photo available'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => showDialog<void>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(item.title),
-                        scrollable: true,
-                        content: Text(item.description.isEmpty
-                            ? item.category
-                            : '${item.category}\n\n${item.description}'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
+                    onTap: () {
+                      final details = widget.marketplace.open(item);
+                      showDialog<void>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Produce listing'),
+                          scrollable: true,
+                          content: SizedBox(
+                            width: 420,
+                            child: FutureBuilder<ProduceListing?>(
+                              future: details,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState != ConnectionState.done) {
+                                  return const LinearProgressIndicator(
+                                    semanticsLabel: 'Loading listing',
+                                  );
+                                }
+                                if (snapshot.hasError) {
+                                  return const Text('Could not open the listing. Try again.');
+                                }
+                                final listing = snapshot.data;
+                                if (listing == null) {
+                                  return const Text('This listing is no longer available.');
+                                }
+                                return ProduceListingDetails(
+                                  title: listing.title,
+                                  category: listing.category,
+                                  description: listing.description,
+                                  photo: listing.photo,
+                                  photoDescription: listing.photoDescription,
+                                );
+                              },
+                            ),
                           ),
-                        ],
-                      ),
-                    ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
             ],

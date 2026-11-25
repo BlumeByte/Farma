@@ -215,9 +215,9 @@ class _FarmaHomeState extends State<FarmaHome> {
   Future<void> _shareProduce(FieldEntry entry) async {
     final marketplace = widget.marketplace;
     if (marketplace == null || _sharing) return;
-    final change = await showDialog<({bool publish, String description})>(
+    final change = await showDialog<({bool publish, String description, String? photoDescription})>(
       context: context,
-      builder: (context) => const _ProducePublishDialog(),
+      builder: (context) => _ProducePublishDialog(entry: entry),
     );
     if (!mounted || change == null || _sharing) return;
     setState(() => _sharing = true);
@@ -229,6 +229,8 @@ class _FarmaHomeState extends State<FarmaHome> {
           title: entry.title,
           category: entry.category,
           description: change.description,
+          photo: change.photoDescription == null ? null : entry.photo,
+          photoDescription: change.photoDescription,
         );
         message = 'Produce published to the marketplace.';
       } else {
@@ -785,7 +787,8 @@ class _EntryEditorState extends State<EntryEditor> {
 }
 
 class _ProducePublishDialog extends StatefulWidget {
-  const _ProducePublishDialog();
+  const _ProducePublishDialog({required this.entry});
+  final FieldEntry entry;
 
   @override
   State<_ProducePublishDialog> createState() => _ProducePublishDialogState();
@@ -793,43 +796,114 @@ class _ProducePublishDialog extends StatefulWidget {
 
 class _ProducePublishDialogState extends State<_ProducePublishDialog> {
   final _description = TextEditingController();
+  final _photoDescription = TextEditingController();
+  late final _photoSupported = _canSharePhoto(widget.entry.photo);
+  bool _sharePhoto = false;
+  bool _preview = false;
+
+  bool _canSharePhoto(Uint8List? photo) {
+    if (photo == null || photo.length < 12 || photo.length > 1024 * 1024) {
+      return false;
+    }
+    return RegExp(r'^(/9j/|iVBORw0KGgo|UklGR|R0lGOD)')
+        .hasMatch(base64Encode(photo.sublist(0, 12)));
+  }
 
   @override
   void dispose() {
     _description.dispose();
+    _photoDescription.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Manage produce listing'),
-    scrollable: true,
-    content: TextField(
-      controller: _description,
-      maxLength: 1000,
-      maxLines: 3,
-      decoration: const InputDecoration(
-        labelText: 'Buyer-facing description (optional)',
-        helperText: 'Buyers can see the name, category, and description.',
-        helperMaxLines: 2,
+  Widget build(BuildContext context) {
+    final entry = widget.entry;
+    return AlertDialog(
+      title: Text(_preview ? 'Buyer preview' : 'Manage produce listing'),
+      scrollable: true,
+      content: SizedBox(
+        width: 420,
+        child: _preview
+            ? ProduceListingDetails(
+                title: entry.title,
+                category: entry.category,
+                description: _description.text.trim(),
+                photo: _sharePhoto ? entry.photo : null,
+                photoDescription: _photoDescription.text.trim(),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _description,
+                    maxLength: 1000,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Buyer-facing description (optional)',
+                    ),
+                  ),
+                  if (_photoSupported)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Share the draft photo with buyers'),
+                      value: _sharePhoto,
+                      onChanged: (value) => setState(() => _sharePhoto = value ?? false),
+                    ),
+                  if (entry.photo != null && !_photoSupported)
+                    const Text('For a listing photo, use a JPEG, PNG, WebP or GIF under 1 MB.'),
+                  if (_sharePhoto)
+                    TextField(
+                      controller: _photoDescription,
+                      maxLength: 160,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Describe the photo for screen readers',
+                      ),
+                    ),
+                ],
+              ),
       ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
-      ),
-      TextButton(
-        onPressed: () => Navigator.pop(context, (publish: false, description: '')),
-        child: const Text('Withdraw'),
-      ),
-      FilledButton(
-        onPressed: () => Navigator.pop(
-          context,
-          (publish: true, description: _description.text.trim()),
+      actions: [
+        TextButton(
+          onPressed: () {
+            if (_preview) {
+              setState(() => _preview = false);
+            } else {
+              Navigator.pop(context);
+            }
+          },
+          child: Text(_preview ? 'Back' : 'Cancel'),
         ),
-        child: const Text('Publish'),
-      ),
-    ],
-  );
+        if (!_preview)
+          TextButton(
+            onPressed: () => Navigator.pop(
+              context,
+              (publish: false, description: '', photoDescription: null),
+            ),
+            child: const Text('Withdraw'),
+          ),
+        FilledButton(
+          onPressed: _sharePhoto && _photoDescription.text.trim().isEmpty
+              ? null
+              : () {
+                  if (!_preview) {
+                    setState(() => _preview = true);
+                    return;
+                  }
+                  Navigator.pop(
+                    context,
+                    (
+                      publish: true,
+                      description: _description.text.trim(),
+                      photoDescription: _sharePhoto ? _photoDescription.text.trim() : null,
+                    ),
+                  );
+                },
+          child: Text(_preview ? 'Publish' : 'Preview'),
+        ),
+      ],
+    );
+  }
 }
