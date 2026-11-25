@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_languages.dart';
 import 'farma_accessibility.dart';
+import 'farma_motion.dart';
 
 import 'farma_app.dart';
 
@@ -126,11 +127,14 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
       );
     }
     if (_mode == _Mode.farmer) {
-      return FarmaHome(
-        accountId: widget.accountId,
-        languageSettings: _languageSettingsButton(),
-        onSignOut: widget.onSignOut,
-        onChangeMode: () => setState(() => _mode = null),
+      return FarmaEntrance(
+        screen: _Mode.farmer,
+        child: FarmaHome(
+          accountId: widget.accountId,
+          languageSettings: _languageSettingsButton(),
+          onSignOut: widget.onSignOut,
+          onChangeMode: () => setState(() => _mode = null),
+        ),
       );
     }
 
@@ -161,82 +165,85 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
       floatingActionButton: kIsWeb ? _languageSettingsButton() : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, kIsWeb ? 76 : 24),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 620),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  FarmaHeading(
-                    choosing
-                        ? 'Choose your language'
-                        : buyer
-                        ? (hausa ? 'Kasuwa' : 'Marketplace')
-                        : (hausa ? 'Zaɓi yanayin aiki' : 'Choose your mode'),
-                    style: theme.textTheme.headlineMedium,
-                    announce: true,
-                  ),
-                  AccessibilityGuide(
-                    choosing
-                        ? 'Select a language to continue to the workspace choices.'
-                        : buyer
-                        ? 'Use Change mode to return to the workspace choices.'
-                        : 'Choose Farmer Mode for field records or Buyer Mode for the marketplace.',
-                  ),
-                  const SizedBox(height: 12),
-                  if (choosing) ...[
-                    const Text(
-                      'Choose a preference for field guidance. English is available across the workspace.',
+        child: FarmaEntrance(
+          screen: (choosing, buyer),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, kIsWeb ? 76 : 24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 620),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FarmaHeading(
+                      choosing
+                          ? 'Choose your language'
+                          : buyer
+                          ? (hausa ? 'Kasuwa' : 'Marketplace')
+                          : (hausa ? 'Zaɓi yanayin aiki' : 'Choose your mode'),
+                      style: theme.textTheme.headlineMedium,
+                      announce: true,
                     ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        for (final language in _languages.entries)
-                          OutlinedButton(
-                            onPressed: _saving
-                                ? null
-                                : () => _choose(language.key),
-                            child: Text(language.value),
-                          ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: _openLanguageSettings,
-                      child: const Text('Choose another language'),
-                    ),
-                  ] else if (buyer) ...[
-                    const Text('Published produce listings will appear here.'),
-                    const SizedBox(height: 20),
-                    OutlinedButton(
-                      onPressed: () => setState(() => _mode = null),
-                      child: const Text('Change mode'),
-                    ),
-                  ] else ...[
-                    _modeCard(
-                      icon: Icons.grass_outlined,
-                      title: hausa ? 'Yanayin manomi' : 'Farmer Mode',
-                      description: 'Record field observations and prepare produce drafts.',
-                      mode: _Mode.farmer,
+                    AccessibilityGuide(
+                      choosing
+                          ? 'Select a language to continue to the workspace choices.'
+                          : buyer
+                          ? 'Use Change mode to return to the workspace choices.'
+                          : 'Choose Farmer Mode for field records or Buyer Mode for the marketplace.',
                     ),
                     const SizedBox(height: 12),
-                    _modeCard(
-                      icon: Icons.storefront_outlined,
-                      title: hausa ? 'Yanayin mai saye' : 'Buyer Mode',
-                      description: 'Explore the marketplace.',
-                      mode: _Mode.buyer,
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton.icon(
-                      onPressed: () => setState(() => _editing = true),
-                      icon: const Icon(Icons.language),
-                      label: Text('Language · $_languageName'),
-                    ),
+                    if (choosing) ...[
+                      const Text(
+                        'Choose a preference for field guidance. English is available across the workspace.',
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (final language in _languages.entries)
+                            OutlinedButton(
+                              onPressed: _saving
+                                  ? null
+                                  : () => _choose(language.key),
+                              child: Text(language.value),
+                            ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: _openLanguageSettings,
+                        child: const Text('Choose another language'),
+                      ),
+                    ] else if (buyer) ...[
+                      const Text('Published produce listings will appear here.'),
+                      const SizedBox(height: 20),
+                      OutlinedButton(
+                        onPressed: () => setState(() => _mode = null),
+                        child: const Text('Change mode'),
+                      ),
+                    ] else ...[
+                      _modeCard(
+                        icon: Icons.grass_outlined,
+                        title: hausa ? 'Yanayin manomi' : 'Farmer Mode',
+                        description: 'Record field observations and prepare produce drafts.',
+                        mode: _Mode.farmer,
+                      ),
+                      const SizedBox(height: 12),
+                      _modeCard(
+                        icon: Icons.storefront_outlined,
+                        title: hausa ? 'Yanayin mai saye' : 'Buyer Mode',
+                        description: 'Explore the marketplace.',
+                        mode: _Mode.buyer,
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton.icon(
+                        onPressed: () => setState(() => _editing = true),
+                        icon: const Icon(Icons.language),
+                        label: Text('Language · $_languageName'),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

@@ -3,6 +3,7 @@ import 'dart:ui' show SemanticsRole;
 import 'package:material_ui/material_ui.dart';
 
 import 'farma_accessibility.dart';
+import 'farma_motion.dart';
 
 import 'farma_onboarding.dart';
 import 'farma_auth.dart';
@@ -37,20 +38,25 @@ class _FarmaPortalState extends State<FarmaPortal> {
   Widget build(BuildContext context) {
     final userId = accountId;
     if (userId != null) {
-      return FarmaOnboarding(
-        key: ValueKey(userId),
-        accountId: userId,
-        onSignOut: () => setState(() {
-          accountId = null;
-          page = _PublicPage.home;
-        }),
+      return FarmaEntrance(
+        screen: userId,
+        child: FarmaOnboarding(
+          accountId: userId,
+          onSignOut: () => setState(() {
+            accountId = null;
+            page = _PublicPage.home;
+          }),
+        ),
       );
     }
 
     if (page == _PublicPage.signIn) {
-      return FarmaAuthScreen(
-        onBack: () => open(_PublicPage.home),
-        onAuthenticated: (id) => setState(() => accountId = id),
+      return FarmaEntrance(
+        screen: page,
+        child: FarmaAuthScreen(
+          onBack: () => open(_PublicPage.home),
+          onAuthenticated: (id) => setState(() => accountId = id),
+        ),
       );
     }
 
@@ -122,13 +128,15 @@ class _FarmaPortalState extends State<FarmaPortal> {
       body: Semantics(
         container: true,
         role: SemanticsRole.main,
-        child: FarmaPublicPage(
-          key: ValueKey(page),
-          content: farmaPages[page.name]!,
-          isHome: page == _PublicPage.home,
-          onSignIn: () => open(_PublicPage.signIn),
-          onExplore: () => open(_PublicPage.services),
-          onNavigate: (name) => open(_PublicPage.values.byName(name)),
+        child: FarmaEntrance(
+          screen: page,
+          child: FarmaPublicPage(
+            content: farmaPages[page.name]!,
+            isHome: page == _PublicPage.home,
+            onSignIn: () => open(_PublicPage.signIn),
+            onExplore: () => open(_PublicPage.services),
+            onNavigate: (name) => open(_PublicPage.values.byName(name)),
+          ),
         ),
       ),
     );

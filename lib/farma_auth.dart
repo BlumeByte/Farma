@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_languages.dart';
 import 'calling_countries.dart';
 import 'farma_accessibility.dart';
+import 'farma_motion.dart';
 
 const _projectUrl = 'https://zwapaxgaedopenvricww.supabase.co';
 const _publishableKey = 'sb_publishable_IveeSm-8OzsC1bu77SD5dA_jUKYLQIB';
@@ -266,17 +267,20 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        FarmaHeading(
-                          _t(
-                            _registration
-                                ? AuthText.createAccount
-                                : AuthText.welcome,
-                          ),
-                          announce: true,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                        FarmaEntrance(
+                          screen: _registration,
+                          child: FarmaHeading(
+                            _t(
+                              _registration
+                                  ? AuthText.createAccount
+                                  : AuthText.welcome,
+                            ),
+                            announce: true,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                        ),
                         ),
                         const SizedBox(height: 10),
                         Text(

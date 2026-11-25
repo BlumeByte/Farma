@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'browser_camera_stub.dart'
     if (dart.library.js_interop) 'browser_camera.dart';
 import 'farma_accessibility.dart';
+import 'farma_motion.dart';
 import 'farma_portal.dart';
 
 enum Workspace {
@@ -279,14 +280,9 @@ class _FarmaHomeState extends State<FarmaHome> {
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1050),
-                    child: AnimatedSwitcher(
-                      duration:
-                          FarmaAccessibility.isEnabled(context) ||
-                              MediaQuery.disableAnimationsOf(context)
-                          ? Duration.zero
-                          : const Duration(milliseconds: 180),
+                    child: FarmaEntrance(
+                      screen: workspace,
                       child: ListView(
-                        key: ValueKey(workspace),
                         padding: EdgeInsets.fromLTRB(
                           wide ? 32 : 18,
                           wide ? 32 : 18,
