@@ -28,7 +28,6 @@ class FarmaApp extends StatefulWidget {
 
 class _FarmaAppState extends State<FarmaApp> {
   static const _accessibilityKey = 'farma.accessibility.enabled';
-  final _storage = SharedPreferencesAsync();
   bool _accessibilityEnabled = false;
   bool _accessibilityChanged = false;
   Future<void> _preferenceWrite = Future<void>.value();
@@ -41,7 +40,8 @@ class _FarmaAppState extends State<FarmaApp> {
 
   Future<void> _restoreAccessibility() async {
     try {
-      final enabled = await _storage.getBool(_accessibilityKey) ?? false;
+      final preferences = await SharedPreferences.getInstance();
+      final enabled = preferences.getBool(_accessibilityKey) ?? false;
       if (mounted && !_accessibilityChanged) {
         setState(() => _accessibilityEnabled = enabled);
       }
@@ -55,7 +55,8 @@ class _FarmaAppState extends State<FarmaApp> {
     setState(() => _accessibilityEnabled = enabled);
     _preferenceWrite = _preferenceWrite.then((_) async {
       try {
-        await _storage.setBool(_accessibilityKey, enabled);
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setBool(_accessibilityKey, enabled);
       } catch (_) {
         // Keep the active setting usable if device storage is unavailable.
       }

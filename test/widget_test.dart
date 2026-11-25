@@ -8,6 +8,7 @@ import 'package:farma/farma_app.dart';
 import 'package:farma/farma_onboarding.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('First-use onboarding lets a buyer choose and change language', (
@@ -43,6 +44,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
+    SharedPreferences.setMockInitialValues({});
     final semantics = tester.ensureSemantics();
     addTearDown(semantics.dispose);
     await tester.pumpWidget(const FarmaApp());
@@ -73,6 +75,11 @@ void main() {
       FarmaAccessibility.isEnabled(tester.element(find.byType(FarmaHeading))),
       isTrue,
     );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(const FarmaApp());
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(toggle).isSelected, isTrue);
 
     await tester.tap(toggle);
     await tester.pumpAndSettle();
