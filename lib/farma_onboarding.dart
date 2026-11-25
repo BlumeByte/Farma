@@ -8,6 +8,7 @@ import 'farma_motion.dart';
 
 import 'farma_app.dart';
 import 'farm_assistant.dart';
+import 'produce_marketplace.dart';
 
 enum _Mode { farmer, buyer }
 
@@ -47,6 +48,11 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
     if (_language case final value? when value.startsWith('custom:'))
       value: value.substring(7),
   };
+
+  ProduceMarketplace? get _marketplace {
+    final token = widget.accessToken;
+    return token == null ? null : ProduceMarketplace(widget.accountId, token);
+  }
 
   String get _languageName => _languages[_language] ?? 'English';
 
@@ -135,6 +141,7 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
         child: FarmaHome(
           accountId: widget.accountId,
           languageSettings: _languageSettingsButton(),
+          marketplace: _marketplace,
           onOpenAssistant: widget.accessToken == null
               ? null
               : () => Navigator.of(context).push<void>(
@@ -229,7 +236,10 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
                         child: const Text('Choose another language'),
                       ),
                     ] else if (buyer) ...[
-                      const Text('Published produce listings will appear here.'),
+                      if (_marketplace case final marketplace?)
+                        ProduceBrowse(marketplace: marketplace)
+                      else
+                        const Text('Sign in to browse published produce.'),
                       const SizedBox(height: 20),
                       OutlinedButton(
                         onPressed: () => setState(() => _mode = null),

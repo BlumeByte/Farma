@@ -10,6 +10,7 @@ import 'browser_camera_stub.dart'
     if (dart.library.js_interop) 'browser_camera.dart';
 import 'farma_accessibility.dart';
 import 'farma_motion.dart';
+import 'produce_marketplace.dart';
 import 'farma_portal.dart';
 
 enum Workspace {
@@ -123,6 +124,7 @@ class FarmaHome extends StatefulWidget {
     required this.onChangeMode,
     this.languageSettings,
     this.onOpenAssistant,
+    this.marketplace,
     super.key,
   });
 
@@ -131,6 +133,7 @@ class FarmaHome extends StatefulWidget {
   final VoidCallback onChangeMode;
   final Widget? languageSettings;
   final VoidCallback? onOpenAssistant;
+  final ProduceMarketplace? marketplace;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -143,6 +146,7 @@ class _FarmaHomeState extends State<FarmaHome> {
   List<FieldEntry> entries = [];
   bool loading = true;
   bool saving = false;
+  bool _sharing = false;
   bool loadFailed = false;
 
   @override
@@ -207,6 +211,39 @@ class _FarmaHomeState extends State<FarmaHome> {
     } finally {
       if (mounted) setState(() => saving = false);
     }
+  }
+
+  Future<void> _shareProduce(FieldEntry entry) async {
+    final marketplace = widget.marketplace;
+    if (marketplace == null || _sharing) return;
+    final change = await showDialog<({bool publish, String description})>(
+      context: context,
+      builder: (context) => const _ProducePublishDialog(),
+    );
+    if (!mounted || change == null || _sharing) return;
+    setState(() => _sharing = true);
+    String message;
+    try {
+      if (change.publish) {
+        await marketplace.publish(
+          draftDate: entry.date,
+          title: entry.title,
+          category: entry.category,
+          description: change.description,
+        );
+        message = 'Produce published to the marketplace.';
+      } else {
+        final withdrawn = await marketplace.withdraw(entry.date);
+        message = withdrawn
+            ? 'Produce removed from the marketplace.'
+            : 'This draft has no published listing.';
+      }
+    } catch (_) {
+      message = 'Could not update the marketplace. Check your connection or sign in again.';
+    }
+    if (!mounted) return;
+    setState(() => _sharing = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -445,7 +482,13 @@ class _FarmaHomeState extends State<FarmaHome> {
               subtitle: Text(
                 '${entry.category} · ${MaterialLocalizations.of(context).formatShortDate(entry.date.toLocal())}',
               ),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: produce && widget.marketplace != null
+                  ? IconButton(
+                      tooltip: 'Publish or withdraw ${entry.title}',
+                      onPressed: _sharing ? null : () => _shareProduce(entry),
+                      icon: const Icon(Icons.storefront_outlined),
+                    )
+                  : const Icon(Icons.chevron_right),
               onTap: () async {
                 final edit = await showDialog<bool>(
                   context: context,
@@ -752,4 +795,54 @@ class _EntryEditorState extends State<EntryEditor> {
       ],
     );
   }
+}
+
+class _ProducePublishDialog extends StatefulWidget {
+  const _ProducePublishDialog();
+
+  @override
+  State<_ProducePublishDialog> createState() => _ProducePublishDialogState();
+}
+
+class _ProducePublishDialogState extends State<_ProducePublishDialog> {
+  final _description = TextEditingController();
+
+  @override
+  void dispose() {
+    _description.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Manage produce listing'),
+    scrollable: true,
+    content: TextField(
+      controller: _description,
+      maxLength: 1000,
+      maxLines: 3,
+      decoration: const InputDecoration(
+        labelText: 'Buyer-facing description (optional)',
+        helperText: 'Buyers can see the name, category, and description.',
+        helperMaxLines: 2,
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      TextButton(
+        onPressed: () => Navigator.pop(context, (publish: false, description: '')),
+        child: const Text('Withdraw'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(
+          context,
+          (publish: true, description: _description.text.trim()),
+        ),
+        child: const Text('Publish'),
+      ),
+    ],
+  );
 }
