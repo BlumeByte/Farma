@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 
 import 'farma_backend.dart';
 
+part 'seller_enquiries.dart';
+
 class ProduceMarketplace {
   const ProduceMarketplace(this.accountId, this.accessToken);
   final String accountId;
@@ -66,10 +68,11 @@ class ProduceMarketplace {
     return (jsonDecode(response.body) as List).isNotEmpty;
   }
 
-  Future<List<ProduceListing>> browse() async {
+  Future<List<ProduceListing>> browse({String? sellerId}) async {
     final response = await http.get(
       _endpoint({
         'published': 'eq.true',
+        if (sellerId != null) 'owner_id': 'eq.$sellerId',
         'select': 'owner_id,draft_created_at,title,category,description,photo_description',
         'order': 'published_at.desc',
         'limit': '100',
@@ -203,13 +206,20 @@ class _ProduceBrowseState extends State<ProduceBrowse> {
         ),
         onChanged: (value) => setState(() => _search = value.trim().toLowerCase()),
       ),
-      Align(
-        alignment: AlignmentDirectional.centerEnd,
-        child: TextButton.icon(
-          onPressed: () => setState(() => _items = widget.marketplace.browse()),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Refresh'),
-        ),
+      Wrap(
+        alignment: WrapAlignment.end,
+        children: [
+          TextButton.icon(
+            onPressed: () => openMarketplaceTools(context, widget.marketplace),
+            icon: const Icon(Icons.inbox_outlined),
+            label: const Text('My enquiries'),
+          ),
+          TextButton.icon(
+            onPressed: () => setState(() => _items = widget.marketplace.browse()),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refresh'),
+          ),
+        ],
       ),
       FutureBuilder<List<ProduceListing>>(
         future: _items,
@@ -266,12 +276,22 @@ class _ProduceBrowseState extends State<ProduceBrowse> {
                                 if (listing == null) {
                                   return const Text('This listing is no longer available.');
                                 }
-                                return ProduceListingDetails(
+                                return Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    ProduceListingDetails(
                                   title: listing.title,
                                   category: listing.category,
                                   description: listing.description,
                                   photo: listing.photo,
                                   photoDescription: listing.photoDescription,
+                                    ),
+                                    _SellerListingActions(
+                                      marketplace: widget.marketplace,
+                                      listing: listing,
+                                    ),
+                                  ],
                                 );
                               },
                             ),
