@@ -58,7 +58,24 @@ class _FarmaPortalState extends State<FarmaPortal> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        actions: const [AccessibilityModeButton()],
+        actions: [
+          if (!wide) ...[
+            PopupMenuButton<_PublicPage>(
+              tooltip: 'Website navigation',
+              onSelected: open,
+              itemBuilder: (_) => [
+                for (final item in _PublicPage.values.take(5))
+                  PopupMenuItem(value: item, child: Text(item.label)),
+              ],
+            ),
+            IconButton(
+              tooltip: 'Sign in',
+              onPressed: () => open(_PublicPage.signIn),
+              icon: const Icon(Icons.login),
+            ),
+          ],
+          const AccessibilityModeButton(),
+        ],
         titleSpacing: 16,
         title: Semantics(
           container: true,
@@ -66,31 +83,38 @@ class _FarmaPortalState extends State<FarmaPortal> {
           label: 'Website navigation',
           child: Row(
             children: [
-              TextButton(
-                onPressed: () => open(_PublicPage.home),
-                child: const Text('Farma', style: TextStyle(fontSize: 22)),
-              ),
-              const Spacer(),
-              if (wide)
-                for (final item in _PublicPage.values.take(5))
-                  TextButton(
-                    onPressed: () => open(item),
-                    child: Text(item.label),
-                  )
-              else
-                PopupMenuButton<_PublicPage>(
-                  tooltip: 'Website navigation',
-                  onSelected: open,
-                  itemBuilder: (_) => [
-                    for (final item in _PublicPage.values.take(5))
-                      PopupMenuItem(value: item, child: Text(item.label)),
-                  ],
+              Flexible(
+                child: TextButton(
+                  onPressed: () => open(_PublicPage.home),
+                  child: const Text(
+                    'Farma',
+                    style: TextStyle(fontSize: 22),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              const SizedBox(width: 8),
-              FilledButton(
-                onPressed: () => open(_PublicPage.signIn),
-                child: const Text('Sign in'),
               ),
+              if (wide) ...[
+                const Spacer(),
+                for (final item in _PublicPage.values.take(5))
+                  Flexible(
+                    flex: 2,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
+                      onPressed: () => open(item),
+                      child: Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                FilledButton(
+                  onPressed: () => open(_PublicPage.signIn),
+                  child: const Text('Sign in'),
+                ),
+              ],
             ],
           ),
         ),

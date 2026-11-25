@@ -70,7 +70,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.tap(find.byTooltip('Sign in'));
     await tester.pumpAndSettle();
     expect(tester.widget<IconButton>(icon).isSelected, isTrue);
     final heading = tester.widget<FarmaHeading>(find.byType(FarmaHeading));
@@ -124,7 +124,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const FarmaApp());
-    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.tap(find.byTooltip('Sign in'));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Language'));
     await tester.pumpAndSettle();
@@ -136,7 +136,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Crea tu cuenta'), findsOneWidget);
     expect(find.text('Nombre de usuario'), findsOneWidget);
-    expect(find.text('País o territorio'), findsOneWidget);
+    final callingCountry = tester.widget<DropdownMenu<CallingCountry>>(
+      find.byType(DropdownMenu<CallingCountry>),
+    );
+    expect((callingCountry.label! as Text).data, 'País o territorio');
     expect(find.text('Número de teléfono'), findsOneWidget);
     expect(find.byType(FarmaHome), findsNothing);
   });
