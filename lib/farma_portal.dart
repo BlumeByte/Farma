@@ -1,4 +1,8 @@
+import 'dart:ui' show SemanticsRole;
+
 import 'package:material_ui/material_ui.dart';
+
+import 'farma_accessibility.dart';
 
 import 'farma_onboarding.dart';
 import 'farma_auth.dart';
@@ -54,41 +58,54 @@ class _FarmaPortalState extends State<FarmaPortal> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        actions: const [AccessibilityModeButton()],
         titleSpacing: 16,
-        title: Row(
-          children: [
-            TextButton(
-              onPressed: () => open(_PublicPage.home),
-              child: const Text('Farma', style: TextStyle(fontSize: 22)),
-            ),
-            const Spacer(),
-            if (wide)
-              for (final item in _PublicPage.values.take(5))
-                TextButton(onPressed: () => open(item), child: Text(item.label))
-            else
-              PopupMenuButton<_PublicPage>(
-                tooltip: 'Website navigation',
-                onSelected: open,
-                itemBuilder: (_) => [
-                  for (final item in _PublicPage.values.take(5))
-                    PopupMenuItem(value: item, child: Text(item.label)),
-                ],
+        title: Semantics(
+          container: true,
+          role: SemanticsRole.navigation,
+          label: 'Website navigation',
+          child: Row(
+            children: [
+              TextButton(
+                onPressed: () => open(_PublicPage.home),
+                child: const Text('Farma', style: TextStyle(fontSize: 22)),
               ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: () => open(_PublicPage.signIn),
-              child: const Text('Sign in'),
-            ),
-          ],
+              const Spacer(),
+              if (wide)
+                for (final item in _PublicPage.values.take(5))
+                  TextButton(
+                    onPressed: () => open(item),
+                    child: Text(item.label),
+                  )
+              else
+                PopupMenuButton<_PublicPage>(
+                  tooltip: 'Website navigation',
+                  onSelected: open,
+                  itemBuilder: (_) => [
+                    for (final item in _PublicPage.values.take(5))
+                      PopupMenuItem(value: item, child: Text(item.label)),
+                  ],
+                ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => open(_PublicPage.signIn),
+                child: const Text('Sign in'),
+              ),
+            ],
+          ),
         ),
       ),
-      body: FarmaPublicPage(
-        key: ValueKey(page),
-        content: farmaPages[page.name]!,
-        isHome: page == _PublicPage.home,
-        onSignIn: () => open(_PublicPage.signIn),
-        onExplore: () => open(_PublicPage.services),
-        onNavigate: (name) => open(_PublicPage.values.byName(name)),
+      body: Semantics(
+        container: true,
+        role: SemanticsRole.main,
+        child: FarmaPublicPage(
+          key: ValueKey(page),
+          content: farmaPages[page.name]!,
+          isHome: page == _PublicPage.home,
+          onSignIn: () => open(_PublicPage.signIn),
+          onExplore: () => open(_PublicPage.services),
+          onNavigate: (name) => open(_PublicPage.values.byName(name)),
+        ),
       ),
     );
   }

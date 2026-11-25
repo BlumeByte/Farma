@@ -1,11 +1,13 @@
 import 'dart:convert';
-
-import 'farma_portal.dart';
+import 'dart:ui' show SemanticsRole;
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'farma_accessibility.dart';
+import 'farma_portal.dart';
 
 enum Workspace {
   overview('Overview', Icons.grid_view_rounded),
@@ -17,8 +19,48 @@ enum Workspace {
   final IconData icon;
 }
 
-class FarmaApp extends StatelessWidget {
+class FarmaApp extends StatefulWidget {
   const FarmaApp({super.key});
+
+  @override
+  State<FarmaApp> createState() => _FarmaAppState();
+}
+
+class _FarmaAppState extends State<FarmaApp> {
+  static const _accessibilityKey = 'farma.accessibility.enabled';
+  final _storage = SharedPreferencesAsync();
+  bool _accessibilityEnabled = false;
+  bool _accessibilityChanged = false;
+  Future<void> _preferenceWrite = Future<void>.value();
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreAccessibility();
+  }
+
+  Future<void> _restoreAccessibility() async {
+    try {
+      final enabled = await _storage.getBool(_accessibilityKey) ?? false;
+      if (mounted && !_accessibilityChanged) {
+        setState(() => _accessibilityEnabled = enabled);
+      }
+    } catch (_) {
+      // The control remains usable if preferences cannot be read.
+    }
+  }
+
+  void _setAccessibility(bool enabled) {
+    _accessibilityChanged = true;
+    setState(() => _accessibilityEnabled = enabled);
+    _preferenceWrite = _preferenceWrite.then((_) async {
+      try {
+        await _storage.setBool(_accessibilityKey, enabled);
+      } catch (_) {
+        // Keep the active setting usable if device storage is unavailable.
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +70,11 @@ class FarmaApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
+      builder: (context, child) => FarmaAccessibility(
+        enabled: _accessibilityEnabled,
+        onChanged: _setAccessibility,
+        child: child!,
+      ),
       home: const FarmaPortal(),
     );
   }
@@ -35,12 +82,20 @@ class FarmaApp extends StatelessWidget {
   ThemeData _theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
+      contrastLevel: _accessibilityEnabled ? 1 : 0,
       seedColor: Colors.black,
       brightness: brightness,
       dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
     );
     return ThemeData(
       colorScheme: scheme,
+      focusColor: _accessibilityEnabled ? scheme.primaryContainer : null,
+      textTheme: _accessibilityEnabled
+          ? const TextTheme(
+              bodyMedium: TextStyle(fontSize: 17),
+              bodyLarge: TextStyle(fontSize: 19),
+            )
+          : null,
       scaffoldBackgroundColor: dark
           ? const Color(0xff101010)
           : const Color(0xfff6f6f6),
@@ -156,6 +211,7 @@ class _FarmaHomeState extends State<FarmaHome> {
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.9),
         ),
         actions: [
+          const AccessibilityModeButton(),
           IconButton(
             onPressed: widget.onChangeMode,
             tooltip: 'Change mode',
@@ -169,46 +225,62 @@ class _FarmaHomeState extends State<FarmaHome> {
       ),
       bottomNavigationBar: wide
           ? null
-          : NavigationBar(
-              selectedIndex: workspace.index,
-              onDestinationSelected: _navigate,
-              destinations: [
-                for (final item in Workspace.values)
-                  NavigationDestination(
-                    icon: Icon(item.icon),
-                    label: item.label,
-                  ),
-              ],
+          : Semantics(
+              container: true,
+              role: SemanticsRole.navigation,
+              label: 'Workspace navigation',
+              child: NavigationBar(
+                selectedIndex: workspace.index,
+                onDestinationSelected: _navigate,
+                destinations: [
+                  for (final item in Workspace.values)
+                    NavigationDestination(
+                      icon: Icon(item.icon),
+                      label: item.label,
+                    ),
+                ],
+              ),
             ),
       body: SafeArea(
         child: Row(
           children: [
             if (wide)
-              NavigationRail(
-                extended: true,
-                selectedIndex: workspace.index,
-                onDestinationSelected: _navigate,
-                destinations: [
-                  for (final item in Workspace.values)
-                    NavigationRailDestination(
-                      icon: Icon(item.icon),
-                      label: Text(item.label),
-                    ),
-                ],
+              Semantics(
+                container: true,
+                role: SemanticsRole.navigation,
+                label: 'Workspace navigation',
+                child: NavigationRail(
+                  extended: true,
+                  selectedIndex: workspace.index,
+                  onDestinationSelected: _navigate,
+                  destinations: [
+                    for (final item in Workspace.values)
+                      NavigationRailDestination(
+                        icon: Icon(item.icon),
+                        label: Text(item.label),
+                      ),
+                  ],
+                ),
               ),
             Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1050),
-                  child: AnimatedSwitcher(
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 180),
-                    child: ListView(
-                      key: ValueKey(workspace),
-                      padding: EdgeInsets.all(wide ? 32 : 18),
-                      children: _content(context, wide),
+              child: Semantics(
+                container: true,
+                role: SemanticsRole.main,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1050),
+                    child: AnimatedSwitcher(
+                      duration:
+                          FarmaAccessibility.isEnabled(context) ||
+                              MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 180),
+                      child: ListView(
+                        key: ValueKey(workspace),
+                        padding: EdgeInsets.all(wide ? 32 : 18),
+                        children: _content(context, wide),
+                      ),
                     ),
                   ),
                 ),
@@ -227,7 +299,13 @@ class _FarmaHomeState extends State<FarmaHome> {
     final scheme = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.displaySmall
         ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1.5);
-    if (loading) return [const Center(child: CircularProgressIndicator())];
+    if (loading) {
+      return [
+        const Center(
+          child: CircularProgressIndicator(semanticsLabel: 'Loading records'),
+        ),
+      ];
+    }
     if (loadFailed) {
       return [
         const Text('Farma could not open local records.'),
@@ -252,8 +330,9 @@ class _FarmaHomeState extends State<FarmaHome> {
               children: [
                 Icon(Icons.eco_outlined, color: scheme.surface, size: 32),
                 const SizedBox(height: 22),
-                Text(
+                FarmaHeading(
                   'Your farm workspace',
+                  announce: true,
                   style: titleStyle?.copyWith(color: scheme.surface),
                 ),
                 const SizedBox(height: 10),
@@ -264,6 +343,9 @@ class _FarmaHomeState extends State<FarmaHome> {
               ],
             ),
           ),
+        ),
+        const AccessibilityGuide(
+          'Open Observations for field records or Produce for your listing drafts. Open a saved record to hear its photo description.',
         ),
         const SizedBox(height: 18),
         for (final item in Workspace.values.skip(1))
@@ -294,8 +376,9 @@ class _FarmaHomeState extends State<FarmaHome> {
     final visible = entries.where((entry) => entry.kind == workspace).toList();
     final produce = workspace == Workspace.produce;
     return [
-      Text(
+      FarmaHeading(
         produce ? 'Produce drafts' : 'Field observations',
+        announce: true,
         style: titleStyle,
       ),
       const SizedBox(height: 8),
@@ -351,7 +434,13 @@ class _FarmaHomeState extends State<FarmaHome> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (entry.photo != null)
-                          Image.memory(entry.photo!, fit: BoxFit.contain),
+                          Image.memory(
+                            entry.photo!,
+                            fit: BoxFit.contain,
+                            semanticLabel:
+                                entry.photoDescription ??
+                                'Photo attached to ${entry.title}. No description available.',
+                          ),
                         Text(entry.category),
                         if (entry.notes.isNotEmpty) Text(entry.notes),
                       ],
@@ -381,7 +470,13 @@ class _FarmaHomeState extends State<FarmaHome> {
 
 Widget _thumbnail(Uint8List photo) => ClipRRect(
   borderRadius: BorderRadius.circular(10),
-  child: Image.memory(photo, width: 52, height: 52, fit: BoxFit.cover),
+  child: Image.memory(
+    photo,
+    width: 52,
+    height: 52,
+    fit: BoxFit.cover,
+    excludeFromSemantics: true,
+  ),
 );
 
 class FieldEntry {
@@ -392,6 +487,7 @@ class FieldEntry {
     required this.notes,
     required this.date,
     this.photo,
+    this.photoDescription,
   });
 
   factory FieldEntry.fromJson(Map<String, dynamic> json) {
@@ -403,6 +499,7 @@ class FieldEntry {
       notes: json['notes'] as String,
       date: DateTime.parse(json['date'] as String),
       photo: encoded == null ? null : base64Decode(encoded),
+      photoDescription: json['photoDescription'] as String?,
     );
   }
 
@@ -412,6 +509,7 @@ class FieldEntry {
   final String notes;
   final DateTime date;
   final Uint8List? photo;
+  final String? photoDescription;
 
   Map<String, dynamic> toJson() => {
     'kind': kind.name,
@@ -420,6 +518,8 @@ class FieldEntry {
     'notes': notes,
     'date': date.toIso8601String(),
     'photo': photo == null ? null : base64Encode(photo!),
+    if (photo != null && photoDescription != null)
+      'photoDescription': photoDescription,
   };
 }
 
@@ -436,6 +536,9 @@ class _EntryEditorState extends State<EntryEditor> {
   final form = GlobalKey<FormState>();
   late final title = TextEditingController(text: widget.existing?.title);
   late final notes = TextEditingController(text: widget.existing?.notes);
+  late final photoDescription = TextEditingController(
+    text: widget.existing?.photoDescription,
+  );
   late String category = widget.existing?.category ?? categories.first;
   late Uint8List? photo = widget.existing?.photo;
   String? photoError;
@@ -450,6 +553,7 @@ class _EntryEditorState extends State<EntryEditor> {
   void dispose() {
     title.dispose();
     notes.dispose();
+    photoDescription.dispose();
     super.dispose();
   }
 
@@ -471,7 +575,9 @@ class _EntryEditorState extends State<EntryEditor> {
         return;
       }
       final bytes = await file.readAsBytes();
-      if (mounted) setState(() => photo = bytes);
+      if (!mounted) return;
+      photoDescription.clear();
+      setState(() => photo = bytes);
     } catch (_) {
       if (mounted) {
         setState(() => photoError = 'Photo unavailable. Try choosing a file.');
@@ -557,12 +663,28 @@ class _EntryEditorState extends State<EntryEditor> {
                     TextButton(
                       onPressed: picking
                           ? null
-                          : () => setState(() => photo = null),
+                          : () {
+                              photoDescription.clear();
+                              setState(() => photo = null);
+                            },
                       child: const Text('Remove photo'),
                     ),
                 ],
               ),
-              if (photoError != null) Text(photoError!),
+              if (photo != null)
+                TextFormField(
+                  controller: photoDescription,
+                  enabled: !picking,
+                  decoration: const InputDecoration(
+                    labelText: 'Photo description (optional)',
+                    helperText: 'Describe what the photo shows for screen reader users.',
+                    helperMaxLines: 3,
+                  ),
+                  maxLines: 3,
+                  maxLength: 300,
+                ),
+              if (photoError case final message?)
+                Semantics(liveRegion: true, child: Text(message)),
             ],
           ),
         ),
@@ -577,6 +699,7 @@ class _EntryEditorState extends State<EntryEditor> {
               ? null
               : () {
                   if (!form.currentState!.validate()) return;
+                  final description = photoDescription.text.trim();
                   Navigator.pop(
                     context,
                     FieldEntry(
@@ -586,6 +709,9 @@ class _EntryEditorState extends State<EntryEditor> {
                       notes: notes.text.trim(),
                       date: widget.existing?.date ?? DateTime.now().toUtc(),
                       photo: photo,
+                      photoDescription: photo != null && description.isNotEmpty
+                          ? description
+                          : null,
                     ),
                   );
                 },

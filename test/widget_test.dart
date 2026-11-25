@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:farma/auth_languages.dart';
 import 'package:farma/calling_countries.dart';
+import 'package:farma/farma_accessibility.dart';
 import 'package:farma/farma_app.dart';
 import 'package:farma/farma_onboarding.dart';
 import 'package:material_ui/material_ui.dart';
@@ -32,6 +33,51 @@ void main() {
     await tester.tap(find.text('Hausa'));
     await tester.pumpAndSettle();
     expect(find.text('Yanayin mai saye'), findsOneWidget);
+  });
+
+  testWidgets('Accessibility mode is reachable before and during sign-in', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(320, 640);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+    await tester.pumpWidget(const FarmaApp());
+    final toggle = find.byTooltip('Accessibility mode');
+    expect(toggle.hitTestable(), findsOneWidget);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(toggle).isSelected, isTrue);
+    expect(
+      find.textContaining('Turn on your device’s screen reader'),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.byType(Image).first);
+    await tester.pumpAndSettle();
+    expect(
+      find.bySemanticsLabel(
+        'Illustration of a Ghanaian farmer examining a cocoa pod',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(toggle).isSelected, isTrue);
+    final heading = tester.widget<FarmaHeading>(find.byType(FarmaHeading));
+    expect(heading.text, 'Welcome back');
+    expect(
+      FarmaAccessibility.isEnabled(tester.element(find.byType(FarmaHeading))),
+      isTrue,
+    );
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(toggle).isSelected, isFalse);
+    expect(tester.takeException(), isNull);
   });
 
   test('Auth translations and international calling codes are complete', () {
@@ -132,11 +178,14 @@ void main() {
       notes: 'Checked after watering',
       date: DateTime.utc(2026, 11, 24),
       photo: Uint8List.fromList([1, 2, 3]),
+      photoDescription: 'A row of tomato plants with yellow lower leaves',
     );
     final restored = FieldEntry.fromJson(
       jsonDecode(jsonEncode(entry.toJson())) as Map<String, dynamic>,
     );
     expect(restored.toJson(), entry.toJson());
+    final legacy = entry.toJson()..remove('photoDescription');
+    expect(FieldEntry.fromJson(legacy).photoDescription, isNull);
   });
 
   testWidgets('Produce draft requires a name and returns trimmed input', (

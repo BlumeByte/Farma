@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'farma_accessibility.dart';
+
 import 'farma_app.dart';
 
 enum _Mode { farmer, buyer }
@@ -79,7 +81,12 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(actions: const [AccessibilityModeButton()]),
+        body: const Center(
+          child: CircularProgressIndicator(semanticsLabel: 'Loading workspace'),
+        ),
+      );
     }
     if (_mode == _Mode.farmer) {
       return FarmaHome(
@@ -105,6 +112,7 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
               )
             : null,
         actions: [
+          const AccessibilityModeButton(),
           TextButton(
             onPressed: widget.onSignOut,
             child: Text(hausa ? 'Fita' : 'Sign out'),
@@ -120,13 +128,21 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
+                  FarmaHeading(
                     choosing
                         ? 'Choose your language'
                         : buyer
                         ? (hausa ? 'Kasuwa' : 'Marketplace')
                         : (hausa ? 'Zaɓi yanayin aiki' : 'Choose your mode'),
                     style: theme.textTheme.headlineMedium,
+                    announce: true,
+                  ),
+                  AccessibilityGuide(
+                    choosing
+                        ? 'Select a language to continue to the workspace choices.'
+                        : buyer
+                        ? 'Use Change mode to return to the workspace choices.'
+                        : 'Choose Farmer Mode for field records or Buyer Mode for the marketplace.',
                   ),
                   const SizedBox(height: 12),
                   if (choosing) ...[

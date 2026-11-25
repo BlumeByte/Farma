@@ -1,12 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:video_player/video_player.dart';
 
+import 'farma_accessibility.dart';
+
 typedef FarmaSection = ({IconData icon, String title, String body});
 typedef FarmaStory = ({
   String title,
   String caption,
   String file,
   String image,
+  List<String> steps,
 });
 
 class FarmaPageContent {
@@ -40,6 +43,11 @@ const _fieldStory = (
   caption: 'A short introduction to documenting a field visit and returning to the record.',
   file: 'assets/farma/field-walkthrough.mp4',
   image: _fieldImage,
+  steps: [
+    'Photograph the observation. Capture a clear image during your field visit.',
+    'Add context. Record a title, category and notes.',
+    'Reopen the record. Compare what you observe on your next visit.',
+  ],
 );
 
 const _marketStory = (
@@ -47,6 +55,11 @@ const _marketStory = (
   caption: 'A short walkthrough of how farmers can start recording details for a future listing.',
   file: 'assets/farma/produce-walkthrough.mp4',
   image: _produceImage,
+  steps: [
+    'Name the produce. Start with the crop or item you harvested.',
+    'Add a representative photo. Choose an image that shows the produce clearly.',
+    'Review your draft. Check the details and save them on your device.',
+  ],
 );
 
 const farmaPages = {
@@ -220,8 +233,9 @@ class FarmaPublicPage extends StatelessWidget {
         final lead = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            FarmaHeading(
               content.heading,
+              announce: true,
               style:
                   (wide
                           ? theme.textTheme.displayLarge
@@ -236,6 +250,9 @@ class FarmaPublicPage extends StatelessWidget {
             Text(
               content.intro,
               style: theme.textTheme.titleMedium?.copyWith(height: 1.55),
+            ),
+            const AccessibilityGuide(
+              'Turn on your device’s screen reader to hear headings, controls, and image descriptions. On a keyboard, Tab moves between controls and Enter activates them.',
             ),
             const SizedBox(height: 24),
             Wrap(
@@ -280,7 +297,7 @@ class FarmaPublicPage extends StatelessWidget {
                     const SizedBox(height: 56),
                     const Divider(),
                     const SizedBox(height: 28),
-                    Text(
+                    FarmaHeading(
                       content.sectionHeading,
                       style: theme.textTheme.headlineMedium,
                     ),
@@ -306,7 +323,7 @@ class FarmaPublicPage extends StatelessWidget {
                                       children: [
                                         Icon(section.icon, size: 28),
                                         const SizedBox(height: 14),
-                                        Text(
+                                        FarmaHeading(
                                           section.title,
                                           style: theme.textTheme.titleLarge,
                                         ),
@@ -327,7 +344,7 @@ class FarmaPublicPage extends StatelessWidget {
                     ),
                     if (content.stories.isNotEmpty) ...[
                       const SizedBox(height: 50),
-                      Text(
+                      FarmaHeading(
                         'See how it works',
                         style: theme.textTheme.headlineMedium,
                       ),
@@ -507,9 +524,23 @@ class _VideoStoryState extends State<_VideoStory> {
           ),
         ),
         const SizedBox(height: 10),
-        Text(story.title, style: theme.textTheme.titleLarge),
+        FarmaHeading(story.title, style: theme.textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(story.caption),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('Read walkthrough steps'),
+          children: [
+            for (final (index, step) in story.steps.indexed)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('${index + 1}. $step'),
+                ),
+              ),
+          ],
+        ),
         if (_failed)
           const Text('Could not play the video. Select Play to retry.'),
       ],
