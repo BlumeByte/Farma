@@ -80,7 +80,7 @@ const farmaPages = {
       ),
       (
         title: 'Review it on the next visit',
-        body: 'Open a saved observation on the same device. Compare the photo and notes with what you see on the next visit.',
+        body: 'Open an observation on the same device, or save it online to open it on another signed-in device. Compare the photo and notes on the next visit.',
       ),
       (
         title: 'Prepare a listing for buyers',
@@ -93,7 +93,7 @@ const farmaPages = {
     ],
     questions: [
       ('Do I need an account?', 'The website is open to everyone. Sign in to save field records, publish produce or browse the marketplace.'),
-      ('Can I open my observations on another phone?', 'Field observations and drafts stay on the device where you saved them. Published listings can be seen from other devices after sign-in.'),
+      ('Can I open my observations on another phone?', 'Yes. Open a local observation and choose Save online. Sign in to the same account on the other device and open Online field records. Unpublished produce drafts stay on the device.'),
     ],
   ),
   'about': FarmaPageContent(
@@ -117,12 +117,12 @@ const farmaPages = {
       ),
       (
         title: 'Plan for weak connectivity',
-        body: 'Saved local records can be reopened once the workspace is loaded. Signing in and using the marketplace need internet access. Device sync and broader offline support are planned.',
+        body: 'Saved local records can be reopened once the workspace is loaded. Signing in, saving online and using the marketplace need internet access. Local records remain available once the workspace is loaded.',
       ),
     ],
     questions: [
       ('Who builds Farma?', 'Farma is a product of BlumeByte Digital Solution in Accra, Ghana.'),
-      ('How are field teams involved?', 'Current records can support a conversation with a field worker. A shared reviewer workspace and district reporting are planned.'),
+      ('How are field teams involved?', 'Farmers can share individual online observations with approved field officers and receive a follow-up. District reporting is planned.'),
     ],
   ),
   'profile': FarmaPageContent(
@@ -192,7 +192,7 @@ const farmaPages = {
       ),
     ],
     questions: [
-      ('Can a field officer review my record in Farma today?', 'The current trial opens local records on your device. A shared review queue is outside this release.'),
+      ('Can a field officer review my record in Farma today?', 'Yes. Save the observation online and choose an approved officer. You can withdraw their access from Online field records.'),
       ('Are buyer payments and delivery available?', 'The current marketplace supports discovery. Payments and delivery remain planned.'),
     ],
     stories: [_marketStory],
