@@ -1,20 +1,25 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:video_player/video_player.dart';
 
-typedef FarmaSection = ({IconData icon, String title, String body});
+import 'farma_accessibility.dart';
+
+typedef FarmaSection = ({String title, String body});
 typedef FarmaStory = ({
   String title,
   String caption,
   String file,
   String image,
+  List<String> steps,
 });
 
 class FarmaPageContent {
   const FarmaPageContent({
     required this.heading,
     required this.intro,
-    required this.image,
-    required this.imageDescription,
+    this.image,
+    this.imageDescription,
+    this.example,
+    required this.questions,
     required this.sectionHeading,
     required this.sections,
     this.stories = const [],
@@ -22,8 +27,10 @@ class FarmaPageContent {
 
   final String heading;
   final String intro;
-  final String image;
-  final String imageDescription;
+  final String? image;
+  final String? imageDescription;
+  final ({String title, List<(String, String)> rows})? example;
+  final List<(String, String)> questions;
   final String sectionHeading;
   final List<FarmaSection> sections;
   final List<FarmaStory> stories;
@@ -40,145 +47,192 @@ const _fieldStory = (
   caption: 'A short introduction to documenting a field visit and returning to the record.',
   file: 'assets/farma/field-walkthrough.mp4',
   image: _fieldImage,
+  steps: [
+    'Photograph the observation. Capture a clear image during your field visit.',
+    'Add context. Record a title, category and notes.',
+    'Reopen the record. Compare what you observe on your next visit.',
+  ],
 );
 
 const _marketStory = (
   title: 'Preparing a produce listing',
-  caption: 'A short walkthrough of how farmers can start recording details for a future listing.',
+  caption: 'A walkthrough of saving a local draft before writing a listing for buyers.',
   file: 'assets/farma/produce-walkthrough.mp4',
   image: _produceImage,
+  steps: [
+    'Name the produce. Start with the crop or item you harvested.',
+    'Add a representative photo. Choose an image that shows the produce clearly.',
+    'Review your draft. Check the details and save them on your device.',
+  ],
 );
 
 const farmaPages = {
   'home': FarmaPageContent(
     heading: 'Keep track of what happens in the field.',
-    intro: 'Farma is BlumeByte’s agricultural workspace for farmers, field teams and produce buyers. Start with a photo and a note, then build a history of what you observe and what you plan to sell.',
+    intro: 'Save a photo and a note when you spot a change on the farm. When you have produce to sell, publish a listing that signed-in buyers can find.',
     image: _fieldImage,
     imageDescription: _fieldPhoto,
-    sectionHeading: 'From the field to the market',
+    sectionHeading: 'From a field visit to a listing',
     sections: [
       (
-        icon: Icons.photo_camera_outlined,
-        title: 'Capture field observations',
-        body: 'Save dated photos, categories and notes as you visit your farm. Reopen them when you inspect the same crop or prepare for a conversation with a field officer.',
+        title: 'Record what you saw',
+        body: 'Add a date, category and short note. A title like “Yellow leaves in the north tomato bed” is easier to find later than “Tomatoes”.',
       ),
       (
-        icon: Icons.storefront_outlined,
-        title: 'Prepare produce listings',
-        body: 'Create a draft for what you have harvested. Record the produce name and add a representative photo and notes before preparing it for buyers.',
+        title: 'Review it on the next visit',
+        body: 'Open a saved observation on the same device. Compare the photo and notes with what you see on the next visit.',
       ),
       (
-        icon: Icons.public_outlined,
-        title: 'Sign up from anywhere',
-        body: 'Choose your country or territory and calling code. Farma’s account screens are available in nine languages and follow your device’s light or dark appearance.',
+        title: 'Prepare a listing for buyers',
+        body: 'Start in Produce and save a draft. When you publish it, write a description for buyers. Your private notes and draft photo stay on your device.',
+      ),
+      (
+        title: 'Browse in Buyer Mode',
+        body: 'Switch to Buyer Mode to search the latest published produce by name or category and open the listing details.',
       ),
     ],
-    stories: [_fieldStory, _marketStory],
+    questions: [
+      ('Do I need an account?', 'The website is open to everyone. Sign in to save field records, publish produce or browse the marketplace.'),
+      ('Can I open my observations on another phone?', 'Field observations and drafts stay on the device where you saved them. Published text listings can be seen from other devices after sign-in.'),
+    ],
   ),
   'about': FarmaPageContent(
     heading: 'About us',
-    intro: 'Farma began in Accra, Ghana, with a practical question. How can a farmer keep useful records in the field and prepare clearer information for a buyer or an extension worker?',
-    image: _fieldImage,
-    imageDescription: _fieldPhoto,
-    sectionHeading: 'What we are building',
+    intro: 'Farma is a BlumeByte project based in Accra, Ghana. It grew out of a practical problem for farmers, buyers and field teams. Useful details can get lost between a field visit, a follow-up and a sale.',
+    image: _produceImage,
+    imageDescription: _producePhoto,
+    sectionHeading: 'The problems we are working on',
     sections: [
       (
-        icon: Icons.grass_outlined,
-        title: 'Practical field records',
-        body: 'A farmer can record an observation using a photo, a short note and a category. Saved records can be reopened on the same device after the app has loaded.',
+        title: 'Keep field details together',
+        body: 'Photos are more useful when they have a date, a location you recognize and a note about what changed. Use the title or note for the plot name and revisit the record when you return.',
       ),
       (
-        icon: Icons.wifi_off_outlined,
-        title: 'Designed around low connectivity',
-        body: 'The project brief prioritizes workflows that remain useful when internet access is limited. On-device guidance, synchronization and broader offline support are planned areas of work.',
+        title: 'Give buyers a clear starting point',
+        body: 'A published listing tells buyers what is available and what the farmer chose to share. Clear descriptions make it easier to compare listings.',
       ),
       (
-        icon: Icons.people_outline,
-        title: 'Built with distinct roles in mind',
-        body: 'The design calls for a farmer workspace for field observations and a buyer workspace for discovering and comparing produce. The current public trial includes observation records and produce drafts.',
+        title: 'Design for the device people have',
+        body: 'Farma runs on the web and is built for Android and iOS. The application supports device light and dark settings, reduced motion and a mode for screen reader users.',
+      ),
+      (
+        title: 'Plan for weak connectivity',
+        body: 'Saved local records can be reopened once the workspace is loaded. Signing in and using the marketplace need internet access. Device sync and broader offline support are planned.',
       ),
     ],
-    stories: [_fieldStory],
+    questions: [
+      ('Who builds Farma?', 'Farma is a product of BlumeByte Digital Solution in Accra, Ghana.'),
+      ('How are field teams involved?', 'Current records can support a conversation with a field worker. A shared reviewer workspace and district reporting are planned.'),
+    ],
   ),
   'profile': FarmaPageContent(
     heading: 'Profile',
-    intro: 'Farma is a BlumeByte Digital Solution project based in Accra, Ghana. The project brings together field documentation, agricultural services and farm-to-buyer commerce.',
-    image: _fieldImage,
-    imageDescription: _fieldPhoto,
-    sectionHeading: 'Project profile',
+    intro: 'Get to know the Farma project, the people it is built for and what happens to the information they enter.',
+    example: (
+      title: 'Project profile',
+      rows: [
+        ('Product', 'Farma'),
+        ('Team', 'BlumeByte Digital Solution'),
+        ('Based in', 'Accra, Ghana'),
+        ('Workspaces', 'Farmer Mode and Buyer Mode'),
+      ],
+    ),
+    sectionHeading: 'Accounts, language and records',
     sections: [
       (
-        icon: Icons.location_on_outlined,
-        title: 'Ghana-rooted, built for wider use',
-        body: 'The partner brief takes Ghana’s farming and district context as its starting point. The signup form supports international country and territory codes so users can register with a number from their own region.',
+        title: 'Sign up with your own number',
+        body: 'Choose your country or territory, add your international phone number and choose a unique username. Return to Farma using your email and password.',
       ),
       (
-        icon: Icons.person_outline,
-        title: 'Who Farma is for',
-        body: 'Farmers can document an observation or start a produce draft. Field teams can use those records as a starting point for follow-up. Buyer discovery and direct communication are part of the planned marketplace.',
+        title: 'Set a language preference',
+        body: 'Sign-in supports nine languages. In the workspace, choose a preferred language or enter another language or dialect. Some workspace screens still appear in English.',
       ),
       (
-        icon: Icons.security_outlined,
-        title: 'How accounts and records work',
-        body: 'Farma uses email and password for account access. Signup details are handled through Supabase. Field photos, notes and drafts in the current trial are stored per account on the device.',
+        title: 'Know what buyers can see',
+        body: 'Publishing shares the produce name, category and buyer-facing description with signed-in buyers. Your draft photo and private notes stay on the device.',
+      ),
+      (
+        title: 'Keep account and trial data in view',
+        body: 'Account details are handled by Supabase. Local observations and drafts are stored separately for each account on that device. Marketplace listings are stored online.',
       ),
     ],
-    stories: [_fieldStory],
+    questions: [
+      ('Does the phone number replace my email?', 'Use your email and password to sign in. The phone number is part of your account profile.'),
+      ('Can I change modes later?', 'Yes. Use Change mode in the workspace to return to the Farmer and Buyer options.'),
+    ],
   ),
   'projects': FarmaPageContent(
     heading: 'Projects',
-    intro: 'Explore the field workspace, marketplace and district pilot concept behind Farma. Features in the current trial are identified alongside work described in the project brief.',
-    image: _produceImage,
-    imageDescription: _producePhoto,
-    sectionHeading: 'Product and pilot work',
+    intro: 'See what Farma is building and what the trial already supports. The field workspace and produce marketplace are the current focus. District operations and professional review are planned.',
+    example: (
+      title: 'Project status',
+      rows: [
+        ('Field workspace', 'Local observations and produce drafts'),
+        ('Marketplace', 'Text listings for signed-in buyers'),
+        ('District operations', 'Planned'),
+      ],
+    ),
+    sectionHeading: 'Current work and pilot plans',
     sections: [
       (
-        icon: Icons.edit_note_outlined,
-        title: 'Field workspace · Available',
-        body: 'Create photo observations, organize them by category and keep notes on what changed. Saved records are available on the same device.',
+        title: 'Field workspace',
+        body: 'Create, reopen and edit dated observations and produce drafts. The record stays with your account on the device where you saved it.',
       ),
       (
-        icon: Icons.storefront_outlined,
-        title: 'Produce showcase · Drafts available',
-        body: 'Save a produce draft with a name, photo and notes. Published listings, short produce videos and one-to-one buyer messaging are planned in the marketplace design.',
+        title: 'Produce marketplace',
+        body: 'A farmer can publish or withdraw a text listing. Buyers can browse and search the latest listings. Shared photos, seller profiles and messaging are future work.',
       ),
       (
-        icon: Icons.map_outlined,
-        title: 'District pilot · Planned',
-        body: 'The partnership brief outlines a potential district-level pilot for training, field workflows and review. Proposed field reporting and mapping features depend on partner participation and validation.',
+        title: 'District pilot concept',
+        body: 'The project brief describes a possible district pilot to test training, field workflows and follow-up. Review queues, reporting and maps depend on partner validation.',
       ),
       (
-        icon: Icons.record_voice_over_outlined,
-        title: 'Accessible guidance · Planned',
-        body: 'The design brief proposes short visual guides and audio in English, Twi, Ga, Ewe, Dagbani and Hausa. Those guides are distinct from the translated signup screens available today.',
+        title: 'Farm Assistant',
+        body: 'The workspace includes a screen for agricultural questions and photo assessments. Live responses require backend configuration. Professional review and escalation workflows are planned.',
       ),
     ],
-    stories: [_fieldStory, _marketStory],
+    questions: [
+      ('Can a field officer review my record in Farma today?', 'The current trial opens local records on your device. A shared review queue is outside this release.'),
+      ('Are buyer payments and delivery available?', 'The current marketplace supports discovery. Payments and delivery remain planned.'),
+    ],
+    stories: [_marketStory],
   ),
   'services': FarmaPageContent(
     heading: 'Services',
-    intro: 'Use the Farma workspace to document field observations and prepare produce records. Keep a record for follow-up and review your drafts before sharing produce information.',
-    image: _produceImage,
-    imageDescription: _producePhoto,
-    sectionHeading: 'What you can do in the trial',
+    intro: 'Learn how to save an observation, publish produce and find a listing. Start with the task you want to complete.',
+    example: (
+      title: 'Example observation',
+      rows: [
+        ('Title', 'Yellow leaves in the north tomato bed'),
+        ('Category', 'Crop'),
+        ('Note', 'Spotted on the lower leaves during the morning visit.'),
+        ('Next step', 'Reopen the record on the next visit.'),
+      ],
+    ),
+    sectionHeading: 'How to use Farma',
     sections: [
       (
-        icon: Icons.camera_alt_outlined,
-        title: 'Record an observation',
-        body: 'Open Observations, add a photo or choose an existing image, then add a category, title and notes. Save it and revisit it whenever you need the record.',
+        title: 'Save an observation',
+        body: 'Open Farmer Mode, choose Observations, then New observation. Enter a title and category, add a photo or note, and save it to this device.',
       ),
       (
-        icon: Icons.inventory_2_outlined,
-        title: 'Create a produce draft',
-        body: 'Open Produce, enter the name of the crop or item and attach a photo. Add useful notes about the harvest or condition. Review those details before preparing a public listing.',
+        title: 'Publish or withdraw produce',
+        body: 'Create a draft in Produce. Open its listing controls, enter a buyer-facing description and publish. Use Withdraw when the listing is no longer available.',
       ),
       (
-        icon: Icons.language_outlined,
-        title: 'Set up your account',
-        body: 'Choose a language on the sign-in screen. At signup, supply a unique username, email and an international phone number. The public pages are available before you sign in.',
+        title: 'Search for produce',
+        body: 'Open Buyer Mode and search by produce name or category. Open a result to read the description. Use Refresh to check for newly published listings.',
+      ),
+      (
+        title: 'Use accessibility controls',
+        body: 'Open Accessibility mode from the top bar. If you use a screen reader, photo descriptions and labeled navigation help you move through the workspace. Add descriptions to saved photos when they are useful.',
       ),
     ],
-    stories: [_marketStory],
+    questions: [
+      ('What if camera access is denied?', 'Choose a photo from your device instead. You can also save an observation with a title and notes.'),
+      ('Can I use Farma to confirm a crop or animal disease?', 'Use observations to keep track of what you see. The assistant, when configured, can offer preliminary guidance. Contact a qualified extension officer or veterinarian when you need a diagnosis.'),
+    ],
+    stories: [_fieldStory],
   ),
 };
 
@@ -206,12 +260,14 @@ class FarmaPublicPage extends StatelessWidget {
       builder: (context, viewport) {
         final wide = viewport.maxWidth >= 900;
         final padding = wide ? 48.0 : 20.0;
-        final image = AspectRatio(
+        final image = content.image == null
+            ? _PageExample(example: content.example!)
+            : AspectRatio(
           aspectRatio: wide ? 1.2 : 1.55,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: Image.asset(
-              content.image,
+              content.image!,
               fit: BoxFit.cover,
               semanticLabel: content.imageDescription,
             ),
@@ -220,8 +276,9 @@ class FarmaPublicPage extends StatelessWidget {
         final lead = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            FarmaHeading(
               content.heading,
+              announce: true,
               style:
                   (wide
                           ? theme.textTheme.displayLarge
@@ -237,6 +294,9 @@ class FarmaPublicPage extends StatelessWidget {
               content.intro,
               style: theme.textTheme.titleMedium?.copyWith(height: 1.55),
             ),
+            const AccessibilityGuide(
+              'Turn on your device’s screen reader to hear headings, controls, and image descriptions. On a keyboard, Tab moves between controls and Enter activates them.',
+            ),
             const SizedBox(height: 24),
             Wrap(
               spacing: 12,
@@ -244,7 +304,7 @@ class FarmaPublicPage extends StatelessWidget {
               children: [
                 FilledButton(
                   onPressed: onSignIn,
-                  child: const Text('Sign in to your workspace'),
+                  child: const Text('Open Farma'),
                 ),
                 if (isHome)
                   OutlinedButton(
@@ -280,54 +340,38 @@ class FarmaPublicPage extends StatelessWidget {
                     const SizedBox(height: 56),
                     const Divider(),
                     const SizedBox(height: 28),
-                    Text(
+                    FarmaHeading(
                       content.sectionHeading,
                       style: theme.textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 20),
-                    LayoutBuilder(
-                      builder: (context, layout) {
-                        final columns = wide ? 2 : 1;
-                        final width =
-                            (layout.maxWidth - (columns - 1) * 16) / columns;
-                        return Wrap(
-                          spacing: 16,
-                          runSpacing: 16,
-                          children: [
-                            for (final section in content.sections)
-                              SizedBox(
-                                width: width,
-                                child: Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(24),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Icon(section.icon, size: 28),
-                                        const SizedBox(height: 14),
-                                        Text(
-                                          section.title,
-                                          style: theme.textTheme.titleLarge,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          section.body,
-                                          style: theme.textTheme.bodyLarge
-                                              ?.copyWith(height: 1.5),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                    for (final section in content.sections) ...[
+                      const Divider(height: 32),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 700),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FarmaHeading(
+                                section.title,
+                                style: theme.textTheme.titleLarge,
                               ),
-                          ],
-                        );
-                      },
-                    ),
+                              const SizedBox(height: 8),
+                              Text(
+                                section.body,
+                                style: theme.textTheme.bodyLarge
+                                    ?.copyWith(height: 1.5),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     if (content.stories.isNotEmpty) ...[
                       const SizedBox(height: 50),
-                      Text(
+                      FarmaHeading(
                         'See how it works',
                         style: theme.textTheme.headlineMedium,
                       ),
@@ -351,6 +395,21 @@ class FarmaPublicPage extends StatelessWidget {
                         },
                       ),
                     ],
+                    const SizedBox(height: 48),
+                    FarmaHeading(
+                      'Common questions',
+                      style: theme.textTheme.headlineMedium,
+                    ),
+                    for (final (question, answer) in content.questions)
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: Text(question),
+                        childrenPadding: const EdgeInsets.only(bottom: 16),
+                        expandedAlignment: AlignmentDirectional.centerStart.resolve(
+                          Directionality.of(context),
+                        ),
+                        children: [Text(answer)],
+                      ),
                     const SizedBox(height: 48),
                     const Divider(),
                     const SizedBox(height: 12),
@@ -383,6 +442,39 @@ class FarmaPublicPage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _PageExample extends StatelessWidget {
+  const _PageExample({required this.example});
+  final ({String title, List<(String, String)> rows}) example;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FarmaHeading(example.title, style: theme.textTheme.headlineSmall),
+            for (final (label, value) in example.rows) ...[
+              const Divider(height: 28),
+              Text(label, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 4),
+              Text(value, style: theme.textTheme.bodyLarge),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -507,9 +599,23 @@ class _VideoStoryState extends State<_VideoStory> {
           ),
         ),
         const SizedBox(height: 10),
-        Text(story.title, style: theme.textTheme.titleLarge),
+        FarmaHeading(story.title, style: theme.textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(story.caption),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('Read walkthrough steps'),
+          children: [
+            for (final (index, step) in story.steps.indexed)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('${index + 1}. $step'),
+                ),
+              ),
+          ],
+        ),
         if (_failed)
           const Text('Could not play the video. Select Play to retry.'),
       ],

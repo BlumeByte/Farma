@@ -1,11 +1,17 @@
 import 'dart:convert';
-
-import 'farma_portal.dart';
+import 'dart:ui' show SemanticsRole;
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'browser_camera_stub.dart'
+    if (dart.library.js_interop) 'browser_camera.dart';
+import 'farma_accessibility.dart';
+import 'farma_motion.dart';
+import 'produce_marketplace.dart';
+import 'farma_portal.dart';
 
 enum Workspace {
   overview('Overview', Icons.grid_view_rounded),
@@ -17,8 +23,49 @@ enum Workspace {
   final IconData icon;
 }
 
-class FarmaApp extends StatelessWidget {
+class FarmaApp extends StatefulWidget {
   const FarmaApp({super.key});
+
+  @override
+  State<FarmaApp> createState() => _FarmaAppState();
+}
+
+class _FarmaAppState extends State<FarmaApp> {
+  static const _accessibilityKey = 'farma.accessibility.enabled';
+  bool _accessibilityEnabled = false;
+  bool _accessibilityChanged = false;
+  Future<void> _preferenceWrite = Future<void>.value();
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreAccessibility();
+  }
+
+  Future<void> _restoreAccessibility() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final enabled = preferences.getBool(_accessibilityKey) ?? false;
+      if (mounted && !_accessibilityChanged) {
+        setState(() => _accessibilityEnabled = enabled);
+      }
+    } catch (_) {
+      // The control remains usable if preferences cannot be read.
+    }
+  }
+
+  void _setAccessibility(bool enabled) {
+    _accessibilityChanged = true;
+    setState(() => _accessibilityEnabled = enabled);
+    _preferenceWrite = _preferenceWrite.then((_) async {
+      try {
+        final preferences = await SharedPreferences.getInstance();
+        await preferences.setBool(_accessibilityKey, enabled);
+      } catch (_) {
+        // Keep the active setting usable if device storage is unavailable.
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +75,11 @@ class FarmaApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
+      builder: (context, child) => FarmaAccessibility(
+        enabled: _accessibilityEnabled,
+        onChanged: _setAccessibility,
+        child: child!,
+      ),
       home: const FarmaPortal(),
     );
   }
@@ -35,12 +87,19 @@ class FarmaApp extends StatelessWidget {
   ThemeData _theme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
-      seedColor: Colors.black,
+      contrastLevel: _accessibilityEnabled ? 1 : 0,
+      seedColor: const Color(0xff285544),
       brightness: brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
     );
     return ThemeData(
       colorScheme: scheme,
+      focusColor: _accessibilityEnabled ? scheme.primaryContainer : null,
+      textTheme: _accessibilityEnabled
+          ? const TextTheme(
+              bodyMedium: TextStyle(fontSize: 17),
+              bodyLarge: TextStyle(fontSize: 19),
+            )
+          : null,
       scaffoldBackgroundColor: dark
           ? const Color(0xff101010)
           : const Color(0xfff6f6f6),
@@ -51,7 +110,7 @@ class FarmaApp extends StatelessWidget {
         color: dark ? const Color(0xff202020) : Colors.white,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -62,12 +121,18 @@ class FarmaHome extends StatefulWidget {
     required this.accountId,
     required this.onSignOut,
     required this.onChangeMode,
+    this.languageSettings,
+    this.onOpenAssistant,
+    this.marketplace,
     super.key,
   });
 
   final String accountId;
   final VoidCallback onSignOut;
   final VoidCallback onChangeMode;
+  final Widget? languageSettings;
+  final VoidCallback? onOpenAssistant;
+  final ProduceMarketplace? marketplace;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -80,6 +145,7 @@ class _FarmaHomeState extends State<FarmaHome> {
   List<FieldEntry> entries = [];
   bool loading = true;
   bool saving = false;
+  bool _sharing = false;
   bool loadFailed = false;
 
   @override
@@ -146,6 +212,39 @@ class _FarmaHomeState extends State<FarmaHome> {
     }
   }
 
+  Future<void> _shareProduce(FieldEntry entry) async {
+    final marketplace = widget.marketplace;
+    if (marketplace == null || _sharing) return;
+    final change = await showDialog<({bool publish, String description})>(
+      context: context,
+      builder: (context) => const _ProducePublishDialog(),
+    );
+    if (!mounted || change == null || _sharing) return;
+    setState(() => _sharing = true);
+    String message;
+    try {
+      if (change.publish) {
+        await marketplace.publish(
+          draftDate: entry.date,
+          title: entry.title,
+          category: entry.category,
+          description: change.description,
+        );
+        message = 'Produce published to the marketplace.';
+      } else {
+        final withdrawn = await marketplace.withdraw(entry.date);
+        message = withdrawn
+            ? 'Produce removed from the marketplace.'
+            : 'This draft has no published listing.';
+      }
+    } catch (_) {
+      message = 'Could not update the marketplace. Check your connection or sign in again.';
+    }
+    if (!mounted) return;
+    setState(() => _sharing = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 820;
@@ -156,6 +255,9 @@ class _FarmaHomeState extends State<FarmaHome> {
           style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.9),
         ),
         actions: [
+          const AccessibilityModeButton(),
+          if (!kIsWeb && widget.languageSettings != null)
+            widget.languageSettings!,
           IconButton(
             onPressed: widget.onChangeMode,
             tooltip: 'Change mode',
@@ -167,48 +269,66 @@ class _FarmaHomeState extends State<FarmaHome> {
           ),
         ],
       ),
+      floatingActionButton: kIsWeb ? widget.languageSettings : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       bottomNavigationBar: wide
           ? null
-          : NavigationBar(
-              selectedIndex: workspace.index,
-              onDestinationSelected: _navigate,
-              destinations: [
-                for (final item in Workspace.values)
-                  NavigationDestination(
-                    icon: Icon(item.icon),
-                    label: item.label,
-                  ),
-              ],
+          : Semantics(
+              container: true,
+              role: SemanticsRole.navigation,
+              label: 'Workspace navigation',
+              child: NavigationBar(
+                selectedIndex: workspace.index,
+                onDestinationSelected: _navigate,
+                destinations: [
+                  for (final item in Workspace.values)
+                    NavigationDestination(
+                      icon: Icon(item.icon),
+                      label: item.label,
+                    ),
+                ],
+              ),
             ),
       body: SafeArea(
         child: Row(
           children: [
             if (wide)
-              NavigationRail(
-                extended: true,
-                selectedIndex: workspace.index,
-                onDestinationSelected: _navigate,
-                destinations: [
-                  for (final item in Workspace.values)
-                    NavigationRailDestination(
-                      icon: Icon(item.icon),
-                      label: Text(item.label),
-                    ),
-                ],
+              Semantics(
+                container: true,
+                role: SemanticsRole.navigation,
+                label: 'Workspace navigation',
+                child: NavigationRail(
+                  extended: true,
+                  selectedIndex: workspace.index,
+                  onDestinationSelected: _navigate,
+                  destinations: [
+                    for (final item in Workspace.values)
+                      NavigationRailDestination(
+                        icon: Icon(item.icon),
+                        label: Text(item.label),
+                      ),
+                  ],
+                ),
               ),
             Expanded(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1050),
-                  child: AnimatedSwitcher(
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 180),
-                    child: ListView(
-                      key: ValueKey(workspace),
-                      padding: EdgeInsets.all(wide ? 32 : 18),
-                      children: _content(context, wide),
+              child: Semantics(
+                container: true,
+                role: SemanticsRole.main,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1050),
+                    child: FarmaEntrance(
+                      screen: workspace,
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(
+                          wide ? 32 : 18,
+                          wide ? 32 : 18,
+                          wide ? 32 : 18,
+                          kIsWeb && widget.languageSettings != null ? 76 : 18,
+                        ),
+                        children: _content(context, wide),
+                      ),
                     ),
                   ),
                 ),
@@ -224,10 +344,15 @@ class _FarmaHomeState extends State<FarmaHome> {
       setState(() => workspace = Workspace.values[index]);
 
   List<Widget> _content(BuildContext context, bool wide) {
-    final scheme = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.displaySmall
         ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1.5);
-    if (loading) return [const Center(child: CircularProgressIndicator())];
+    if (loading) {
+      return [
+        const Center(
+          child: CircularProgressIndicator(semanticsLabel: 'Loading records'),
+        ),
+      ];
+    }
     if (loadFailed) {
       return [
         const Text('Farma could not open local records.'),
@@ -243,29 +368,33 @@ class _FarmaHomeState extends State<FarmaHome> {
 
     if (workspace == Workspace.overview) {
       return [
-        Card(
-          color: scheme.onSurface,
-          child: Padding(
-            padding: EdgeInsets.all(wide ? 40 : 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.eco_outlined, color: scheme.surface, size: 32),
-                const SizedBox(height: 22),
-                Text(
-                  'Your farm workspace',
-                  style: titleStyle?.copyWith(color: scheme.surface),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Record field observations and prepare produce listings on this device.',
-                  style: TextStyle(color: scheme.surface, fontSize: 16),
-                ),
-              ],
-            ),
+        FarmaHeading('Farm records', style: titleStyle, announce: true),
+        const SizedBox(height: 8),
+        const Text('Add a field observation or manage your produce listings.'),
+        const SizedBox(height: 16),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FilledButton.icon(
+            onPressed: saving ? null : () => _save(Workspace.observations),
+            icon: const Icon(Icons.add),
+            label: const Text('New observation'),
           ),
         ),
+        const AccessibilityGuide(
+          'Open Observations for field records or Produce for your listing drafts. Open a saved record to hear its photo description.',
+        ),
         const SizedBox(height: 18),
+        if (widget.onOpenAssistant != null) ...[
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilledButton.icon(
+              onPressed: widget.onOpenAssistant,
+              icon: const Icon(Icons.chat_outlined),
+              label: const Text('Farm Assistant'),
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
         for (final item in Workspace.values.skip(1))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -294,8 +423,9 @@ class _FarmaHomeState extends State<FarmaHome> {
     final visible = entries.where((entry) => entry.kind == workspace).toList();
     final produce = workspace == Workspace.produce;
     return [
-      Text(
+      FarmaHeading(
         produce ? 'Produce drafts' : 'Field observations',
+        announce: true,
         style: titleStyle,
       ),
       const SizedBox(height: 8),
@@ -339,7 +469,13 @@ class _FarmaHomeState extends State<FarmaHome> {
               subtitle: Text(
                 '${entry.category} · ${MaterialLocalizations.of(context).formatShortDate(entry.date.toLocal())}',
               ),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: produce && widget.marketplace != null
+                  ? IconButton(
+                      tooltip: 'Publish or withdraw ${entry.title}',
+                      onPressed: _sharing ? null : () => _shareProduce(entry),
+                      icon: const Icon(Icons.storefront_outlined),
+                    )
+                  : const Icon(Icons.chevron_right),
               onTap: () async {
                 final edit = await showDialog<bool>(
                   context: context,
@@ -351,7 +487,13 @@ class _FarmaHomeState extends State<FarmaHome> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (entry.photo != null)
-                          Image.memory(entry.photo!, fit: BoxFit.contain),
+                          Image.memory(
+                            entry.photo!,
+                            fit: BoxFit.contain,
+                            semanticLabel:
+                                entry.photoDescription ??
+                                'Photo attached to ${entry.title}. No description available.',
+                          ),
                         Text(entry.category),
                         if (entry.notes.isNotEmpty) Text(entry.notes),
                       ],
@@ -381,7 +523,13 @@ class _FarmaHomeState extends State<FarmaHome> {
 
 Widget _thumbnail(Uint8List photo) => ClipRRect(
   borderRadius: BorderRadius.circular(10),
-  child: Image.memory(photo, width: 52, height: 52, fit: BoxFit.cover),
+  child: Image.memory(
+    photo,
+    width: 52,
+    height: 52,
+    fit: BoxFit.cover,
+    excludeFromSemantics: true,
+  ),
 );
 
 class FieldEntry {
@@ -392,6 +540,7 @@ class FieldEntry {
     required this.notes,
     required this.date,
     this.photo,
+    this.photoDescription,
   });
 
   factory FieldEntry.fromJson(Map<String, dynamic> json) {
@@ -403,6 +552,7 @@ class FieldEntry {
       notes: json['notes'] as String,
       date: DateTime.parse(json['date'] as String),
       photo: encoded == null ? null : base64Decode(encoded),
+      photoDescription: json['photoDescription'] as String?,
     );
   }
 
@@ -412,6 +562,7 @@ class FieldEntry {
   final String notes;
   final DateTime date;
   final Uint8List? photo;
+  final String? photoDescription;
 
   Map<String, dynamic> toJson() => {
     'kind': kind.name,
@@ -420,6 +571,8 @@ class FieldEntry {
     'notes': notes,
     'date': date.toIso8601String(),
     'photo': photo == null ? null : base64Encode(photo!),
+    if (photo != null && photoDescription != null)
+      'photoDescription': photoDescription,
   };
 }
 
@@ -436,6 +589,9 @@ class _EntryEditorState extends State<EntryEditor> {
   final form = GlobalKey<FormState>();
   late final title = TextEditingController(text: widget.existing?.title);
   late final notes = TextEditingController(text: widget.existing?.notes);
+  late final photoDescription = TextEditingController(
+    text: widget.existing?.photoDescription,
+  );
   late String category = widget.existing?.category ?? categories.first;
   late Uint8List? photo = widget.existing?.photo;
   String? photoError;
@@ -450,6 +606,7 @@ class _EntryEditorState extends State<EntryEditor> {
   void dispose() {
     title.dispose();
     notes.dispose();
+    photoDescription.dispose();
     super.dispose();
   }
 
@@ -459,6 +616,11 @@ class _EntryEditorState extends State<EntryEditor> {
       photoError = null;
     });
     try {
+      if (kIsWeb && source == ImageSource.camera) {
+        final bytes = await captureBrowserPhoto();
+        if (bytes != null && mounted) _setPhoto(bytes);
+        return;
+      }
       final file = await ImagePicker().pickImage(
         source: source,
         maxWidth: 960,
@@ -471,7 +633,8 @@ class _EntryEditorState extends State<EntryEditor> {
         return;
       }
       final bytes = await file.readAsBytes();
-      if (mounted) setState(() => photo = bytes);
+      if (!mounted) return;
+      _setPhoto(bytes);
     } catch (_) {
       if (mounted) {
         setState(() => photoError = 'Photo unavailable. Try choosing a file.');
@@ -479,6 +642,11 @@ class _EntryEditorState extends State<EntryEditor> {
     } finally {
       if (mounted) setState(() => picking = false);
     }
+  }
+
+  void _setPhoto(Uint8List bytes) {
+    photoDescription.clear();
+    setState(() => photo = bytes);
   }
 
   @override
@@ -544,9 +712,9 @@ class _EntryEditorState extends State<EntryEditor> {
                       photo == null ? 'Choose photo' : 'Replace photo',
                     ),
                   ),
-                  if (!kIsWeb &&
-                      (platform == TargetPlatform.android ||
-                          platform == TargetPlatform.iOS))
+                  if (kIsWeb ||
+                      platform == TargetPlatform.android ||
+                      platform == TargetPlatform.iOS)
                     TextButton(
                       onPressed: picking
                           ? null
@@ -557,12 +725,28 @@ class _EntryEditorState extends State<EntryEditor> {
                     TextButton(
                       onPressed: picking
                           ? null
-                          : () => setState(() => photo = null),
+                          : () {
+                              photoDescription.clear();
+                              setState(() => photo = null);
+                            },
                       child: const Text('Remove photo'),
                     ),
                 ],
               ),
-              if (photoError != null) Text(photoError!),
+              if (photo != null)
+                TextFormField(
+                  controller: photoDescription,
+                  enabled: !picking,
+                  decoration: const InputDecoration(
+                    labelText: 'Photo description (optional)',
+                    helperText: 'Describe what the photo shows for screen reader users.',
+                    helperMaxLines: 3,
+                  ),
+                  maxLines: 3,
+                  maxLength: 300,
+                ),
+              if (photoError case final message?)
+                Semantics(liveRegion: true, child: Text(message)),
             ],
           ),
         ),
@@ -577,6 +761,7 @@ class _EntryEditorState extends State<EntryEditor> {
               ? null
               : () {
                   if (!form.currentState!.validate()) return;
+                  final description = photoDescription.text.trim();
                   Navigator.pop(
                     context,
                     FieldEntry(
@@ -586,6 +771,9 @@ class _EntryEditorState extends State<EntryEditor> {
                       notes: notes.text.trim(),
                       date: widget.existing?.date ?? DateTime.now().toUtc(),
                       photo: photo,
+                      photoDescription: photo != null && description.isNotEmpty
+                          ? description
+                          : null,
                     ),
                   );
                 },
@@ -594,4 +782,54 @@ class _EntryEditorState extends State<EntryEditor> {
       ],
     );
   }
+}
+
+class _ProducePublishDialog extends StatefulWidget {
+  const _ProducePublishDialog();
+
+  @override
+  State<_ProducePublishDialog> createState() => _ProducePublishDialogState();
+}
+
+class _ProducePublishDialogState extends State<_ProducePublishDialog> {
+  final _description = TextEditingController();
+
+  @override
+  void dispose() {
+    _description.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Manage produce listing'),
+    scrollable: true,
+    content: TextField(
+      controller: _description,
+      maxLength: 1000,
+      maxLines: 3,
+      decoration: const InputDecoration(
+        labelText: 'Buyer-facing description (optional)',
+        helperText: 'Buyers can see the name, category, and description.',
+        helperMaxLines: 2,
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      TextButton(
+        onPressed: () => Navigator.pop(context, (publish: false, description: '')),
+        child: const Text('Withdraw'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(
+          context,
+          (publish: true, description: _description.text.trim()),
+        ),
+        child: const Text('Publish'),
+      ),
+    ],
+  );
 }

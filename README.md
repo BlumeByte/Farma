@@ -3,7 +3,7 @@ AI-driven mobile and web platform that empowers farmers with instant crop and li
 
 ## Flutter workspace
 
-The current workspace targets Android, iOS and web. It includes a responsive monochrome interface and local photo records for field observations and produce drafts. It can save and reopen records on the same device once the app is running. Web startup without a connection and device-to-device sync are outside this build. The public site opens before sign-in. The current local store is for small trial datasets and separates records by Farma account on the device.
+The current workspace targets Android, iOS and web. It includes a responsive interface and local photo records for field observations and produce drafts. It can save and reopen records on the same device once the app is running. Web startup without a connection and device-to-device sync are outside this build. The public site opens before sign-in. The current local store is for small trial datasets and separates records by Farma account on the device.
 
 Use Flutter 3.50.1:
 
@@ -24,7 +24,7 @@ Apply the versioned Supabase migration before rolling out signup to a new enviro
 
 ## Public website
 
-Home, About us, Profile, Projects and Services describe the current trial and planned work. The two short, captioned walkthroughs and the illustrative black-and-white photographs are original site assets. The videos are silent and playable on demand.
+Home, About us, Profile, Projects and Services describe the current trial and planned work. The two short, captioned walkthroughs and the illustrative black-and-white photographs are original site assets. The videos are silent and playable on demand. Projects hosts the produce walkthrough and Services hosts the field walkthrough.
 
 ## Implementation status
 
@@ -33,8 +33,23 @@ The v3.1 product specification and the Operations & Field Console blueprint are 
 | Area | Current scope |
 | --- | --- |
 | Field workspace | Local observation history, categories, notes and photo capture/selection |
-| Produce showcase | Local photo drafts. Publishing, buyer discovery, short videos and messaging are pending |
+| Produce showcase | Local photo drafts. Signed-in farmers can publish and withdraw text listings. Signed-in buyers can browse and search the latest 100 published listings. Public listing photos, seller profiles, short videos and messaging are pending |
 | Supabase | Email/password sign-in and signup with a unique username, country or territory, and international phone number. Storage, realtime, device sync and role policies are pending |
 | Operations web console | District and partner access, aggregate reporting, review queues, verification and campaign management are pending |
-| Models and safety | The workspace records observations only. Validated diagnostic results and professional escalation are outside this build |
+| Models and safety | Farm Assistant offers preliminary assessments when the model is configured. Validated diagnosis and professional escalation workflows are pending |
 | Commercial rollout | Verification billing, advertising, payments and delivery remain pending |
+
+## Farm Assistant
+
+Signed-in farmers can open Farm Assistant from Overview, ask a question, or
+attach a photo using the gallery or device camera. The assistant uses the
+workspace language preference and can suggest questions for the next turn.
+The latest answer and optional feedback can be saved on the current device.
+Farmers choose whether to include their feedback as context in a later question.
+No shared learning or reviewer workflow is included.
+
+The Supabase `farm-assistant` Edge Function validates the signed-in user and
+limits each account to 20 requests per hour. Set `OPENAI_API_KEY` as a
+Supabase Edge Function secret, apply the Farm Assistant quota migration, and
+deploy the function. The optional `FARMA_OPENAI_MODEL` setting selects a
+vision-capable model that supports JSON mode. The key stays on the server.

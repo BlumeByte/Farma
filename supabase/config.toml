@@ -1,0 +1,2 @@
+[functions.farm-assistant]
+verify_jwt = false
