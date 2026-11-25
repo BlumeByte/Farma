@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_languages.dart';
 import 'calling_countries.dart';
+import 'farma_accessibility.dart';
 
 const _projectUrl = 'https://zwapaxgaedopenvricww.supabase.co';
 const _publishableKey = 'sb_publishable_IveeSm-8OzsC1bu77SD5dA_jUKYLQIB';
@@ -222,20 +223,6 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
     );
   }
 
-  Widget _label(AuthText text, Widget input) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsetsDirectional.only(start: 6, bottom: 8),
-          child: Text(_t(text)),
-        ),
-        input,
-      ],
-    ),
-  );
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -251,6 +238,7 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
           ),
           title: const Text('Farma'),
           actions: [
+            const AccessibilityModeButton(),
             PopupMenuButton<String>(
               tooltip: _t(AuthText.language),
               icon: const Icon(Icons.language),
@@ -278,12 +266,13 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
+                        FarmaHeading(
                           _t(
                             _registration
                                 ? AuthText.createAccount
                                 : AuthText.welcome,
                           ),
+                          announce: true,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -298,144 +287,140 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
+                        const AccessibilityGuide(
+                          'Use your screen reader or Tab to move between the labeled sign-in fields.',
+                        ),
                         const SizedBox(height: 30),
                         if (_registration) ...[
-                          _label(
-                            AuthText.fullName,
-                            TextFormField(
-                              controller: _name,
-                              enabled: !_pending,
-                              maxLength: 120,
-                              autofillHints: const [AutofillHints.name],
-                              textCapitalization: TextCapitalization.words,
-                              decoration: _decoration(context)
-                                  .copyWith(counterText: ''),
-                              validator: (value) => (value ?? '').trim().isEmpty
-                                  ? _t(AuthText.requiredField)
-                                  : null,
-                            ),
-                          ),
-                          _label(
-                            AuthText.username,
-                            TextFormField(
-                              controller: _username,
-                              enabled: !_pending,
-                              maxLength: 24,
-                              textDirection: TextDirection.ltr,
-                              autocorrect: false,
-                              decoration: _decoration(
-                                context,
-                                hint: 'farma_user',
-                              ).copyWith(counterText: ''),
-                              validator: (_) =>
-                                  _usernamePattern.hasMatch(_normalizedUsername)
-                                  ? null
-                                  : _t(AuthText.usernameRule),
-                            ),
-                          ),
-                        ],
-                        _label(
-                          AuthText.email,
                           TextFormField(
-                            controller: _email,
+                            controller: _name,
+                            enabled: !_pending,
+                            maxLength: 120,
+                            autofillHints: const [AutofillHints.name],
+                            textCapitalization: TextCapitalization.words,
+                            decoration: _decoration(context).copyWith(
+                              labelText: _t(AuthText.fullName),
+                              counterText: '',
+                            ),
+                            validator: (value) => (value ?? '').trim().isEmpty
+                                ? _t(AuthText.requiredField)
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _username,
+                            enabled: !_pending,
+                            maxLength: 24,
+                            textDirection: TextDirection.ltr,
+                            autocorrect: false,
+                            decoration: _decoration(context, hint: 'farma_user')
+                                .copyWith(
+                                  labelText: _t(AuthText.username),
+                                  counterText: '',
+                                ),
+                            validator: (_) =>
+                                _usernamePattern.hasMatch(_normalizedUsername)
+                                ? null
+                                : _t(AuthText.usernameRule),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        TextFormField(
+                          controller: _email,
+                          enabled: !_pending,
+                          textDirection: TextDirection.ltr,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          decoration: _decoration(context)
+                              .copyWith(labelText: _t(AuthText.email)),
+                          validator: (value) =>
+                              (value ?? '').trim().contains('@')
+                              ? null
+                              : _t(AuthText.invalidEmail),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_registration) ...[
+                          LayoutBuilder(
+                            builder: (context, constraints) =>
+                                DropdownMenu<CallingCountry>(
+                                  width: constraints.maxWidth,
+                                  label: Text(_t(AuthText.country)),
+                                  menuHeight: 300,
+                                  enabled: !_pending,
+                                  enableFilter: true,
+                                  controller: _countryText,
+                                  requestFocusOnTap: true,
+                                  initialSelection: _country,
+                                  onSelected: (item) {
+                                    if (item != null) {
+                                      setState(() => _country = item);
+                                    }
+                                  },
+                                  dropdownMenuEntries: [
+                                    for (final item in callingCountries)
+                                      DropdownMenuEntry(
+                                        value: item,
+                                        label: item.label,
+                                      ),
+                                  ],
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _phone,
                             enabled: !_pending,
                             textDirection: TextDirection.ltr,
-                            keyboardType: TextInputType.emailAddress,
-                            autofillHints: const [AutofillHints.email],
-                            decoration: _decoration(context),
-                            validator: (value) =>
-                                (value ?? '').trim().contains('@')
-                                ? null
-                                : _t(AuthText.invalidEmail),
-                          ),
-                        ),
-                        if (_registration) ...[
-                          _label(
-                            AuthText.country,
-                            LayoutBuilder(
-                              builder: (context, constraints) =>
-                                  DropdownMenu<CallingCountry>(
-                                    width: constraints.maxWidth,
-                                    menuHeight: 300,
-                                    enabled: !_pending,
-                                    enableFilter: true,
-                                    controller: _countryText,
-                                    requestFocusOnTap: true,
-                                    initialSelection: _country,
-                                    onSelected: (item) {
-                                      if (item != null) {
-                                        setState(() => _country = item);
-                                      }
-                                    },
-                                    dropdownMenuEntries: [
-                                      for (final item in callingCountries)
-                                        DropdownMenuEntry(
-                                          value: item,
-                                          label: item.label,
-                                        ),
-                                    ],
-                                  ),
-                            ),
-                          ),
-                          _label(
-                            AuthText.phone,
-                            TextFormField(
-                              controller: _phone,
-                              enabled: !_pending,
-                              textDirection: TextDirection.ltr,
-                              keyboardType: TextInputType.phone,
-                              autofillHints: const [
-                                AutofillHints.telephoneNumberNational,
-                              ],
-                              decoration: _decoration(
-                                context,
-                                hint: _country.dial,
-                              ),
-                              validator: (_) =>
-                                  _phonePattern.hasMatch(_internationalPhone) &&
-                                      _internationalPhone.startsWith(
-                                        _country.dial,
-                                      )
-                                  ? null
-                                  : _t(AuthText.invalidPhone),
-                            ),
-                          ),
-                        ],
-                        _label(
-                          AuthText.password,
-                          TextFormField(
-                            controller: _password,
-                            enabled: !_pending,
-                            obscureText: _obscured,
-                            autofillHints: [
-                              _registration
-                                  ? AutofillHints.newPassword
-                                  : AutofillHints.password,
+                            keyboardType: TextInputType.phone,
+                            autofillHints: const [
+                              AutofillHints.telephoneNumberNational,
                             ],
                             decoration: _decoration(
                               context,
-                              suffix: IconButton(
-                                tooltip: _t(AuthText.passwordVisibility),
-                                icon: Icon(
-                                  _obscured
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
-                                onPressed: () =>
-                                    setState(() => _obscured = !_obscured),
-                              ),
-                            ),
-                            onFieldSubmitted: (_) => _submit(),
-                            validator: (value) =>
-                                (value ?? '').length < (_registration ? 8 : 1)
-                                ? _t(
-                                    _registration
-                                        ? AuthText.passwordRule
-                                        : AuthText.requiredField,
-                                  )
-                                : null,
+                              hint: _country.dial,
+                            ).copyWith(labelText: _t(AuthText.phone)),
+                            validator: (_) =>
+                                _phonePattern.hasMatch(_internationalPhone) &&
+                                    _internationalPhone.startsWith(
+                                      _country.dial,
+                                    )
+                                ? null
+                                : _t(AuthText.invalidPhone),
                           ),
+                          const SizedBox(height: 16),
+                        ],
+                        TextFormField(
+                          controller: _password,
+                          enabled: !_pending,
+                          obscureText: _obscured,
+                          autofillHints: [
+                            _registration
+                                ? AutofillHints.newPassword
+                                : AutofillHints.password,
+                          ],
+                          decoration: _decoration(
+                            context,
+                            suffix: IconButton(
+                              tooltip: _t(AuthText.passwordVisibility),
+                              icon: Icon(
+                                _obscured
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () =>
+                                  setState(() => _obscured = !_obscured),
+                            ),
+                          ).copyWith(labelText: _t(AuthText.password)),
+                          onFieldSubmitted: (_) => _submit(),
+                          validator: (value) =>
+                              (value ?? '').length < (_registration ? 8 : 1)
+                              ? _t(
+                                  _registration
+                                      ? AuthText.passwordRule
+                                      : AuthText.requiredField,
+                                )
+                              : null,
                         ),
+                        const SizedBox(height: 16),
                         if (_error case final message?)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
