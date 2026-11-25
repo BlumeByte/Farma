@@ -45,8 +45,6 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     SharedPreferences.setMockInitialValues({});
-    final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     await tester.pumpWidget(const FarmaApp());
     final toggle = find.byTooltip('Accessibility mode');
     final icon = find.descendant(
