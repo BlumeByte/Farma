@@ -14,7 +14,7 @@ class FieldRecords {
   final String accountId;
   final String accessToken;
 
-  Future<List<_Row>> request(
+  Future<List<_Row>> _request(
     String method,
     String table,
     Map<String, String> query, {
@@ -26,7 +26,7 @@ class FieldRecords {
       'apikey': farmaPublishableKey,
       'Authorization': 'Bearer $accessToken',
       'Content-Type': 'application/json',
-      if (prefer != null) 'Prefer': prefer,
+      'Prefer': ?prefer,
     };
     final response = await (switch (method) {
       'POST' => http.post(uri, headers: headers, body: jsonEncode(data)),
@@ -43,7 +43,7 @@ class FieldRecords {
 
   Future<void> save(FieldEntry entry) async {
     final photo = entry.photo;
-    await request(
+    await _request(
       'POST',
       'cloud_observations',
       {'on_conflict': 'owner_id,observed_at'},
@@ -75,18 +75,18 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
   Future<({List<_Row> records, List<_Row> reviews, List<_Row> officers})> _load() async {
     final service = widget.service;
     final results = await Future.wait([
-      service.request('GET', 'cloud_observations', {
+      service._request('GET', 'cloud_observations', {
         'owner_id': 'eq.${service.accountId}',
         'select': 'owner_id,observed_at,title,category',
         'order': 'observed_at.desc',
         'limit': '100',
       }),
-      service.request('GET', 'observation_reviews', {
+      service._request('GET', 'observation_reviews', {
         'select': 'id,farmer_id,observation_date,officer_id,follow_up,field_officers(display_name),cloud_observations(title)',
         'order': 'requested_at.desc',
         'limit': '100',
       }),
-      service.request('GET', 'field_officers', {'select': 'id,display_name,district', 'order': 'display_name'}),
+      service._request('GET', 'field_officers', {'select': 'id,display_name,district', 'order': 'display_name'}),
     ]);
     return (records: results[0], reviews: results[1], officers: results[2]);
   }
@@ -109,7 +109,7 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
   Future<void> _open(_Row row, {String? reviewId}) async {
     final owner = row['owner_id'] ?? row['farmer_id'];
     final date = row['observed_at'] ?? row['observation_date'];
-    final record = widget.service.request('GET', 'cloud_observations', {
+    final record = widget.service._request('GET', 'cloud_observations', {
       'owner_id': 'eq.$owner',
       'observed_at': 'eq.$date',
       'select': 'title,category,notes,photo_base64,photo_description',
@@ -119,7 +119,7 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
       builder: (_) => _RecordDetails(record: record, canReply: reviewId != null),
     );
     if (!mounted || reviewId == null || reply == null) return;
-    await _change(() => widget.service.request(
+    await _change(() => widget.service._request(
       'PATCH', 'observation_reviews', {'id': 'eq.$reviewId', 'follow_up': 'is.null', 'select': 'id'},
       data: {'follow_up': reply},
       prefer: 'return=representation',
@@ -151,7 +151,7 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
       ),
     );
     if (!mounted || officer == null) return;
-    await _change(() => widget.service.request(
+    await _change(() => widget.service._request(
       'POST', 'observation_reviews', {'on_conflict': 'farmer_id,observation_date,officer_id'},
       data: {'observation_date': row['observed_at'], 'officer_id': officer},
       prefer: 'resolution=ignore-duplicates,return=representation',
@@ -212,7 +212,7 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
                         tooltip: 'Withdraw review and remove access',
                         icon: const Icon(Icons.person_remove_outlined),
                         onPressed: () => _change(
-                          () => widget.service.request(
+                          () => widget.service._request(
                             'DELETE', 'observation_reviews',
                             {'id': 'eq.${review['id']}', 'select': 'id'},
                             prefer: 'return=representation',
