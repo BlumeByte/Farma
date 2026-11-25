@@ -33,7 +33,7 @@ The v3.1 product specification and the Operations & Field Console blueprint are 
 | Area | Current scope |
 | --- | --- |
 | Field workspace | Local observation history, categories, notes and photo capture/selection |
-| Produce showcase | Local photo drafts. Signed-in farmers can publish and withdraw text listings. Signed-in buyers can browse and search the latest 100 published listings. Public listing photos, seller profiles, short videos and messaging are pending |
+| Produce showcase | Local photo drafts. Signed-in farmers can preview, publish and withdraw listings with an optional photo and photo description. Signed-in buyers can browse and search the latest 100 published listings. Listing photos load when buyers open a listing. Seller profiles, short videos and messaging are pending |
 | Supabase | Email/password sign-in and signup with a unique username, country or territory, and international phone number. Storage, realtime, device sync and role policies are pending |
 | Operations web console | District and partner access, aggregate reporting, review queues, verification and campaign management are pending |
 | Models and safety | Farm Assistant offers preliminary assessments when the model is configured. Validated diagnosis and professional escalation workflows are pending |

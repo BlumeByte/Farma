@@ -84,7 +84,7 @@ const farmaPages = {
       ),
       (
         title: 'Prepare a listing for buyers',
-        body: 'Start in Produce and save a draft. When you publish it, write a description for buyers. Your private notes and draft photo stay on your device.',
+        body: 'Start in Produce and save a draft. When you publish it, write a description for buyers. Choose whether to share the draft photo. Private notes stay on your device.',
       ),
       (
         title: 'Browse in Buyer Mode',
@@ -93,7 +93,7 @@ const farmaPages = {
     ],
     questions: [
       ('Do I need an account?', 'The website is open to everyone. Sign in to save field records, publish produce or browse the marketplace.'),
-      ('Can I open my observations on another phone?', 'Field observations and drafts stay on the device where you saved them. Published text listings can be seen from other devices after sign-in.'),
+      ('Can I open my observations on another phone?', 'Field observations and drafts stay on the device where you saved them. Published listings can be seen from other devices after sign-in.'),
     ],
   ),
   'about': FarmaPageContent(
@@ -149,7 +149,7 @@ const farmaPages = {
       ),
       (
         title: 'Know what buyers can see',
-        body: 'Publishing shares the produce name, category and buyer-facing description with signed-in buyers. Your draft photo and private notes stay on the device.',
+        body: 'Publishing shares the produce name, category and buyer-facing description with signed-in buyers. Buyers can also see a photo if you choose to share it. Private notes stay on the device.',
       ),
       (
         title: 'Keep account and trial data in view',
@@ -168,7 +168,7 @@ const farmaPages = {
       title: 'Project status',
       rows: [
         ('Field workspace', 'Local observations and produce drafts'),
-        ('Marketplace', 'Text listings for signed-in buyers'),
+        ('Marketplace', 'Listings for signed-in buyers'),
         ('District operations', 'Planned'),
       ],
     ),
@@ -180,7 +180,7 @@ const farmaPages = {
       ),
       (
         title: 'Produce marketplace',
-        body: 'A farmer can publish or withdraw a text listing. Buyers can browse and search the latest listings. Shared photos, seller profiles and messaging are future work.',
+        body: 'A farmer can preview, publish or withdraw a listing and choose whether to share a photo. Buyers can browse and search the latest listings. Seller profiles and messaging are future work.',
       ),
       (
         title: 'District pilot concept',
