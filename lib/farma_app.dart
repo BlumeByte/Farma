@@ -88,9 +88,8 @@ class _FarmaAppState extends State<FarmaApp> {
     final dark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
       contrastLevel: _accessibilityEnabled ? 1 : 0,
-      seedColor: Colors.black,
+      seedColor: const Color(0xff285544),
       brightness: brightness,
-      dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
     );
     return ThemeData(
       colorScheme: scheme,
@@ -111,7 +110,7 @@ class _FarmaAppState extends State<FarmaApp> {
         color: dark ? const Color(0xff202020) : Colors.white,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -345,7 +344,6 @@ class _FarmaHomeState extends State<FarmaHome> {
       setState(() => workspace = Workspace.values[index]);
 
   List<Widget> _content(BuildContext context, bool wide) {
-    final scheme = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.displaySmall
         ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -1.5);
     if (loading) {
@@ -370,27 +368,16 @@ class _FarmaHomeState extends State<FarmaHome> {
 
     if (workspace == Workspace.overview) {
       return [
-        Card(
-          color: scheme.onSurface,
-          child: Padding(
-            padding: EdgeInsets.all(wide ? 40 : 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.eco_outlined, color: scheme.surface, size: 32),
-                const SizedBox(height: 22),
-                FarmaHeading(
-                  'Your farm workspace',
-                  announce: true,
-                  style: titleStyle?.copyWith(color: scheme.surface),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Record field observations and prepare produce listings on this device.',
-                  style: TextStyle(color: scheme.surface, fontSize: 16),
-                ),
-              ],
-            ),
+        FarmaHeading('Farm records', style: titleStyle, announce: true),
+        const SizedBox(height: 8),
+        const Text('Add a field observation or manage your produce listings.'),
+        const SizedBox(height: 16),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FilledButton.icon(
+            onPressed: saving ? null : () => _save(Workspace.observations),
+            icon: const Icon(Icons.add),
+            label: const Text('New observation'),
           ),
         ),
         const AccessibilityGuide(
