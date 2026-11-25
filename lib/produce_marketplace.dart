@@ -131,12 +131,12 @@ class _ProduceBrowseState extends State<ProduceBrowse> {
         future: _items,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return LinearProgressIndicator(semanticsLabel: 'Loading produce');
+            return const LinearProgressIndicator(semanticsLabel: 'Loading produce');
           }
           if (snapshot.hasError) {
-            return const Semantics(
+            return Semantics(
               liveRegion: true,
-              child: Text('Could not load produce. Sign in again or try Refresh.'),
+              child: const Text('Could not load produce. Sign in again or try Refresh.'),
             );
           }
           final items = snapshot.data ?? const <ProduceListing>[];
