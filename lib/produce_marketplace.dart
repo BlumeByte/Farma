@@ -131,7 +131,7 @@ class _ProduceBrowseState extends State<ProduceBrowse> {
         future: _items,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const LinearProgressIndicator(semanticsLabel: 'Loading produce');
+            return LinearProgressIndicator(semanticsLabel: 'Loading produce');
           }
           if (snapshot.hasError) {
             return const Semantics(
