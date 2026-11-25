@@ -8,6 +8,7 @@ import 'farma_motion.dart';
 
 import 'farma_app.dart';
 import 'farm_assistant.dart';
+import 'field_records.dart';
 import 'produce_marketplace.dart';
 
 enum _Mode { farmer, buyer }
@@ -142,6 +143,9 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
           accountId: widget.accountId,
           languageSettings: _languageSettingsButton(),
           marketplace: _marketplace,
+          fieldRecords: widget.accessToken == null
+              ? null
+              : FieldRecords(widget.accountId, widget.accessToken!),
           onOpenAssistant: widget.accessToken == null
               ? null
               : () => Navigator.of(context).push<void>(

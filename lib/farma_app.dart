@@ -11,6 +11,7 @@ import 'browser_camera_stub.dart'
 import 'farma_accessibility.dart';
 import 'farma_motion.dart';
 import 'produce_marketplace.dart';
+import 'field_records.dart';
 import 'farma_portal.dart';
 
 enum Workspace {
@@ -124,6 +125,7 @@ class FarmaHome extends StatefulWidget {
     this.languageSettings,
     this.onOpenAssistant,
     this.marketplace,
+    this.fieldRecords,
     super.key,
   });
 
@@ -133,6 +135,7 @@ class FarmaHome extends StatefulWidget {
   final Widget? languageSettings;
   final VoidCallback? onOpenAssistant;
   final ProduceMarketplace? marketplace;
+  final FieldRecords? fieldRecords;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -210,6 +213,22 @@ class _FarmaHomeState extends State<FarmaHome> {
     } finally {
       if (mounted) setState(() => saving = false);
     }
+  }
+
+  Future<void> _saveObservationOnline(FieldEntry entry) async {
+    final service = widget.fieldRecords;
+    if (service == null || _sharing) return;
+    setState(() => _sharing = true);
+    String message;
+    try {
+      await service.save(entry);
+      message = 'Observation saved online.';
+    } catch (_) {
+      message = 'Could not save online. Your local record is still on this device.';
+    }
+    if (!mounted) return;
+    setState(() => _sharing = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _shareProduce(FieldEntry entry) async {
@@ -436,6 +455,18 @@ class _FarmaHomeState extends State<FarmaHome> {
             ? 'Prepare listings for produce you plan to sell.'
             : 'Keep photo and written records from the field.',
       ),
+      if (!produce)
+        if (widget.fieldRecords case final records?)
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(builder: (_) => FieldRecordsScreen(service: records)),
+              ),
+              icon: const Icon(Icons.cloud_outlined),
+              label: const Text('Online field records'),
+            ),
+          ),
       if (produce)
         if (widget.marketplace case final marketplace?) ...[
         const SizedBox(height: 12),
@@ -495,7 +526,7 @@ class _FarmaHomeState extends State<FarmaHome> {
                     )
                   : const Icon(Icons.chevron_right),
               onTap: () async {
-                final edit = await showDialog<bool>(
+                final action = await showDialog<String>(
                   context: context,
                   builder: (dialogContext) => AlertDialog(
                     title: Text(entry.title),
@@ -521,15 +552,25 @@ class _FarmaHomeState extends State<FarmaHome> {
                         onPressed: () => Navigator.pop(dialogContext),
                         child: const Text('Close'),
                       ),
+                      if (!produce && widget.fieldRecords != null)
+                        TextButton(
+                          onPressed: _sharing
+                              ? null
+                              : () => Navigator.pop(dialogContext, 'online'),
+                          child: const Text('Save online'),
+                        ),
                       TextButton(
-                        onPressed: () => Navigator.pop(dialogContext, true),
+                        onPressed: () => Navigator.pop(dialogContext, 'edit'),
                         child: const Text('Edit'),
                       ),
                     ],
                   ),
                 );
-                if (edit == true && mounted) {
+                if (!mounted) return;
+                if (action == 'edit') {
                   await _save(entry.kind, existing: entry);
+                } else if (action == 'online') {
+                  await _saveObservationOnline(entry);
                 }
               },
             ),
