@@ -122,6 +122,7 @@ class FarmaHome extends StatefulWidget {
     required this.onSignOut,
     required this.onChangeMode,
     this.languageSettings,
+    this.onOpenAssistant,
     super.key,
   });
 
@@ -129,6 +130,7 @@ class FarmaHome extends StatefulWidget {
   final VoidCallback onSignOut;
   final VoidCallback onChangeMode;
   final Widget? languageSettings;
+  final VoidCallback? onOpenAssistant;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -358,6 +360,17 @@ class _FarmaHomeState extends State<FarmaHome> {
           'Open Observations for field records or Produce for your listing drafts. Open a saved record to hear its photo description.',
         ),
         const SizedBox(height: 18),
+        if (widget.onOpenAssistant != null) ...[
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilledButton.icon(
+              onPressed: widget.onOpenAssistant,
+              icon: const Icon(Icons.chat_outlined),
+              label: const Text('Farm Assistant'),
+            ),
+          ),
+          const SizedBox(height: 18),
+        ],
         for (final item in Workspace.values.skip(1))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),

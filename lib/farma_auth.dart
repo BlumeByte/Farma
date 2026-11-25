@@ -9,10 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_languages.dart';
 import 'calling_countries.dart';
 import 'farma_accessibility.dart';
+import 'farma_backend.dart';
 import 'farma_motion.dart';
-
-const _projectUrl = 'https://zwapaxgaedopenvricww.supabase.co';
-const _publishableKey = 'sb_publishable_IveeSm-8OzsC1bu77SD5dA_jUKYLQIB';
 
 class FarmaAuthScreen extends StatefulWidget {
   const FarmaAuthScreen({
@@ -22,7 +20,7 @@ class FarmaAuthScreen extends StatefulWidget {
   });
 
   final VoidCallback onBack;
-  final ValueChanged<String> onAuthenticated;
+  final void Function(String accountId, String accessToken) onAuthenticated;
 
   @override
   State<FarmaAuthScreen> createState() => _FarmaAuthScreenState();
@@ -131,9 +129,9 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
       final endpoint = _registration ? 'signup' : 'token?grant_type=password';
       final response = await http
           .post(
-            Uri.parse('$_projectUrl/auth/v1/$endpoint'),
+            Uri.parse('$farmaProjectUrl/auth/v1/$endpoint'),
             headers: {
-              'apikey': _publishableKey,
+              'apikey': farmaPublishableKey,
               'Content-Type': 'application/json',
             },
             body: jsonEncode({
@@ -165,8 +163,9 @@ class _FarmaAuthScreenState extends State<FarmaAuthScreen> {
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
       final user = payload['user'] as Map<String, dynamic>?;
       final id = user?['id'];
-      if (id is String && id.isNotEmpty && payload['access_token'] is String) {
-        widget.onAuthenticated(id);
+      final token = payload['access_token'];
+      if (id is String && id.isNotEmpty && token is String) {
+        widget.onAuthenticated(id, token);
         return;
       }
       if (!_registration) throw const FormatException('Invalid session');

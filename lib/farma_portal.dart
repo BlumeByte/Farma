@@ -31,6 +31,7 @@ class FarmaPortal extends StatefulWidget {
 class _FarmaPortalState extends State<FarmaPortal> {
   _PublicPage page = _PublicPage.home;
   String? accountId;
+  String? accessToken;
 
   void open(_PublicPage next) => setState(() => page = next);
 
@@ -42,8 +43,10 @@ class _FarmaPortalState extends State<FarmaPortal> {
         screen: userId,
         child: FarmaOnboarding(
           accountId: userId,
+          accessToken: accessToken,
           onSignOut: () => setState(() {
             accountId = null;
+            accessToken = null;
             page = _PublicPage.home;
           }),
         ),
@@ -55,7 +58,10 @@ class _FarmaPortalState extends State<FarmaPortal> {
         screen: page,
         child: FarmaAuthScreen(
           onBack: () => open(_PublicPage.home),
-          onAuthenticated: (id) => setState(() => accountId = id),
+          onAuthenticated: (id, token) => setState(() {
+            accountId = id;
+            accessToken = token;
+          }),
         ),
       );
     }

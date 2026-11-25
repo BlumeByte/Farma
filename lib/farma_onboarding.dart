@@ -7,6 +7,7 @@ import 'farma_accessibility.dart';
 import 'farma_motion.dart';
 
 import 'farma_app.dart';
+import 'farm_assistant.dart';
 
 enum _Mode { farmer, buyer }
 
@@ -14,10 +15,12 @@ class FarmaOnboarding extends StatefulWidget {
   const FarmaOnboarding({
     required this.accountId,
     required this.onSignOut,
+    this.accessToken,
     super.key,
   });
 
   final String accountId;
+  final String? accessToken;
   final VoidCallback onSignOut;
 
   @override
@@ -132,6 +135,17 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
         child: FarmaHome(
           accountId: widget.accountId,
           languageSettings: _languageSettingsButton(),
+          onOpenAssistant: widget.accessToken == null
+              ? null
+              : () => Navigator.of(context).push<void>(
+                  MaterialPageRoute(
+                    builder: (_) => FarmAssistant(
+                      accountId: widget.accountId,
+                      accessToken: widget.accessToken!,
+                      language: _languageName,
+                    ),
+                  ),
+                ),
           onSignOut: widget.onSignOut,
           onChangeMode: () => setState(() => _mode = null),
         ),
