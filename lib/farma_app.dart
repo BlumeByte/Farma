@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'browser_camera_stub.dart'
+    if (dart.library.js_interop) 'browser_camera.dart';
 import 'farma_accessibility.dart';
 import 'farma_portal.dart';
 
@@ -118,12 +120,14 @@ class FarmaHome extends StatefulWidget {
     required this.accountId,
     required this.onSignOut,
     required this.onChangeMode,
+    this.languageSettings,
     super.key,
   });
 
   final String accountId;
   final VoidCallback onSignOut;
   final VoidCallback onChangeMode;
+  final Widget? languageSettings;
 
   @override
   State<FarmaHome> createState() => _FarmaHomeState();
@@ -213,6 +217,8 @@ class _FarmaHomeState extends State<FarmaHome> {
         ),
         actions: [
           const AccessibilityModeButton(),
+          if (!kIsWeb && widget.languageSettings != null)
+            widget.languageSettings!,
           IconButton(
             onPressed: widget.onChangeMode,
             tooltip: 'Change mode',
@@ -224,6 +230,8 @@ class _FarmaHomeState extends State<FarmaHome> {
           ),
         ],
       ),
+      floatingActionButton: kIsWeb ? widget.languageSettings : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       bottomNavigationBar: wide
           ? null
           : Semantics(
@@ -279,7 +287,12 @@ class _FarmaHomeState extends State<FarmaHome> {
                           : const Duration(milliseconds: 180),
                       child: ListView(
                         key: ValueKey(workspace),
-                        padding: EdgeInsets.all(wide ? 32 : 18),
+                        padding: EdgeInsets.fromLTRB(
+                          wide ? 32 : 18,
+                          wide ? 32 : 18,
+                          wide ? 32 : 18,
+                          kIsWeb && widget.languageSettings != null ? 76 : 18,
+                        ),
                         children: _content(context, wide),
                       ),
                     ),
@@ -564,6 +577,11 @@ class _EntryEditorState extends State<EntryEditor> {
       photoError = null;
     });
     try {
+      if (kIsWeb && source == ImageSource.camera) {
+        final bytes = await captureBrowserPhoto();
+        if (bytes != null && mounted) _setPhoto(bytes);
+        return;
+      }
       final file = await ImagePicker().pickImage(
         source: source,
         maxWidth: 960,
@@ -577,8 +595,7 @@ class _EntryEditorState extends State<EntryEditor> {
       }
       final bytes = await file.readAsBytes();
       if (!mounted) return;
-      photoDescription.clear();
-      setState(() => photo = bytes);
+      _setPhoto(bytes);
     } catch (_) {
       if (mounted) {
         setState(() => photoError = 'Photo unavailable. Try choosing a file.');
@@ -586,6 +603,11 @@ class _EntryEditorState extends State<EntryEditor> {
     } finally {
       if (mounted) setState(() => picking = false);
     }
+  }
+
+  void _setPhoto(Uint8List bytes) {
+    photoDescription.clear();
+    setState(() => photo = bytes);
   }
 
   @override
@@ -651,9 +673,9 @@ class _EntryEditorState extends State<EntryEditor> {
                       photo == null ? 'Choose photo' : 'Replace photo',
                     ),
                   ),
-                  if (!kIsWeb &&
-                      (platform == TargetPlatform.android ||
-                          platform == TargetPlatform.iOS))
+                  if (kIsWeb ||
+                      platform == TargetPlatform.android ||
+                      platform == TargetPlatform.iOS)
                     TextButton(
                       onPressed: picking
                           ? null

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'auth_languages.dart';
 import 'farma_accessibility.dart';
 
 import 'farma_app.dart';
@@ -34,6 +36,38 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
   late final _preferences = SharedPreferencesAsync();
   String get _key => 'farma.workspace.language.${widget.accountId}';
   String? _language;
+
+  Map<String, String> get _languages => {
+    for (final entry in authLanguages.entries) entry.key: entry.value.name,
+    ..._fieldLanguages,
+    if (_language case final value? when value.startsWith('custom:'))
+      value: value.substring(7),
+  };
+
+  String get _languageName => _languages[_language] ?? 'English';
+
+  Future<void> _openLanguageSettings() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => _LanguageDialog(
+        languages: _languages,
+        selected: _language,
+      ),
+    );
+    if (selected != null && mounted) await _choose(selected);
+  }
+
+  Widget _languageSettingsButton() => kIsWeb
+      ? FilledButton.tonalIcon(
+          onPressed: _openLanguageSettings,
+          icon: const Icon(Icons.language),
+          label: const Text('Language'),
+        )
+      : IconButton(
+          tooltip: 'Language settings',
+          onPressed: _openLanguageSettings,
+          icon: const Icon(Icons.language),
+        );
   _Mode? _mode;
   bool _loading = true;
   bool _editing = false;
@@ -54,7 +88,10 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
     }
     if (!mounted) return;
     setState(() {
-      _language = _fieldLanguages.containsKey(selected) ? selected : null;
+      _language = selected != null &&
+                (_languages.containsKey(selected) || selected.startsWith('custom:'))
+            ? selected
+            : null;
       _loading = false;
     });
   }
@@ -91,6 +128,7 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
     if (_mode == _Mode.farmer) {
       return FarmaHome(
         accountId: widget.accountId,
+        languageSettings: _languageSettingsButton(),
         onSignOut: widget.onSignOut,
         onChangeMode: () => setState(() => _mode = null),
       );
@@ -113,15 +151,18 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
             : null,
         actions: [
           const AccessibilityModeButton(),
+          if (!kIsWeb) _languageSettingsButton(),
           TextButton(
             onPressed: widget.onSignOut,
             child: Text(hausa ? 'Fita' : 'Sign out'),
           ),
         ],
       ),
+      floatingActionButton: kIsWeb ? _languageSettingsButton() : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, kIsWeb ? 76 : 24),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 620),
@@ -154,7 +195,7 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        for (final language in _fieldLanguages.entries)
+                        for (final language in _languages.entries)
                           OutlinedButton(
                             onPressed: _saving
                                 ? null
@@ -162,6 +203,10 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
                             child: Text(language.value),
                           ),
                       ],
+                    ),
+                    TextButton(
+                      onPressed: _openLanguageSettings,
+                      child: const Text('Choose another language'),
                     ),
                   ] else if (buyer) ...[
                     const Text('Published produce listings will appear here.'),
@@ -188,7 +233,7 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
                     TextButton.icon(
                       onPressed: () => setState(() => _editing = true),
                       icon: const Icon(Icons.language),
-                      label: Text('Language · ${_fieldLanguages[_language]}'),
+                      label: Text('Language · $_languageName'),
                     ),
                   ],
                 ],
@@ -215,4 +260,73 @@ class _FarmaOnboardingState extends State<FarmaOnboarding> {
       onTap: () => setState(() => _mode = mode),
     ),
   );
+}
+
+class _LanguageDialog extends StatefulWidget {
+  const _LanguageDialog({required this.languages, required this.selected});
+
+  final Map<String, String> languages;
+  final String? selected;
+
+  @override
+  State<_LanguageDialog> createState() => _LanguageDialogState();
+}
+
+class _LanguageDialogState extends State<_LanguageDialog> {
+  final _custom = TextEditingController();
+
+  @override
+  void dispose() {
+    _custom.dispose();
+    super.dispose();
+  }
+
+  void _saveCustom() {
+    final name = _custom.text.trim();
+    if (name.isNotEmpty) Navigator.pop(context, 'custom:$name');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Language settings'),
+      scrollable: true,
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Choose your preferred language. Some screens are currently available in English.',
+            ),
+            for (final entry in widget.languages.entries)
+              ListTile(
+                title: Text(entry.value),
+                selected: entry.key == widget.selected,
+                onTap: () => Navigator.pop(context, entry.key),
+              ),
+            TextField(
+              controller: _custom,
+              maxLength: 80,
+              decoration: const InputDecoration(
+                labelText: 'Other language or dialect',
+              ),
+              onSubmitted: (_) => _saveCustom(),
+            ),
+            OutlinedButton(
+              onPressed: _saveCustom,
+              child: const Text('Save other language'),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    );
+  }
 }
