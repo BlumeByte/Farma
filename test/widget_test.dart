@@ -49,10 +49,14 @@ void main() {
     addTearDown(semantics.dispose);
     await tester.pumpWidget(const FarmaApp());
     final toggle = find.byTooltip('Accessibility mode');
+    final icon = find.descendant(
+      of: find.byType(AccessibilityModeButton),
+      matching: find.byType(IconButton),
+    );
     expect(toggle.hitTestable(), findsOneWidget);
     await tester.tap(toggle);
     await tester.pumpAndSettle();
-    expect(tester.widget<IconButton>(toggle).isSelected, isTrue);
+    expect(tester.widget<IconButton>(icon).isSelected, isTrue);
     expect(
       find.textContaining('Turn on your device’s screen reader'),
       findsOneWidget,
@@ -68,7 +72,7 @@ void main() {
 
     await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
     await tester.pumpAndSettle();
-    expect(tester.widget<IconButton>(toggle).isSelected, isTrue);
+    expect(tester.widget<IconButton>(icon).isSelected, isTrue);
     final heading = tester.widget<FarmaHeading>(find.byType(FarmaHeading));
     expect(heading.text, 'Welcome back');
     expect(
@@ -79,11 +83,11 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(const FarmaApp());
     await tester.pumpAndSettle();
-    expect(tester.widget<IconButton>(toggle).isSelected, isTrue);
+    expect(tester.widget<IconButton>(icon).isSelected, isTrue);
 
     await tester.tap(toggle);
     await tester.pumpAndSettle();
-    expect(tester.widget<IconButton>(toggle).isSelected, isFalse);
+    expect(tester.widget<IconButton>(icon).isSelected, isFalse);
     expect(tester.takeException(), isNull);
   });
 
