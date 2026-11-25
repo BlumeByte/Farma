@@ -180,7 +180,7 @@ const farmaPages = {
       ),
       (
         title: 'Produce marketplace',
-        body: 'A farmer can preview, publish or withdraw a listing and choose whether to share a photo. Buyers can browse and search the latest listings. Seller profiles and messaging are future work.',
+        body: 'A farmer can preview, publish or withdraw a listing and choose whether to share a photo. Buyers can browse and search the latest listings. Open a listing to view the seller profile or ask about availability, quantity or pickup.',
       ),
       (
         title: 'District pilot concept',

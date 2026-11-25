@@ -436,6 +436,22 @@ class _FarmaHomeState extends State<FarmaHome> {
             ? 'Prepare listings for produce you plan to sell.'
             : 'Keep photo and written records from the field.',
       ),
+      if (produce)
+        if (widget.marketplace case final marketplace?) ...[
+        const SizedBox(height: 12),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: OutlinedButton.icon(
+            onPressed: () => openMarketplaceTools(
+              context,
+              marketplace,
+              sellerTools: true,
+            ),
+            icon: const Icon(Icons.storefront_outlined),
+            label: const Text('Seller profile and enquiries'),
+          ),
+        ),
+      ],
       const SizedBox(height: 18),
       Align(
         alignment: Alignment.centerLeft,
