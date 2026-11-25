@@ -3,7 +3,7 @@ AI-driven mobile and web platform that empowers farmers with instant crop and li
 
 ## Flutter workspace
 
-The current workspace targets Android, iOS and web. It includes a responsive interface and local photo records for field observations and produce drafts. It can save and reopen records on the same device once the app is running. Web startup without a connection and device-to-device sync are outside this build. The public site opens before sign-in. The current local store is for small trial datasets and separates records by Farma account on the device.
+The current workspace targets Android, iOS and web. It includes a responsive interface and local photo records for field observations and produce drafts. It can save and reopen records on the same device once the app is running. Farmers can also save individual observations online to view on another signed-in device. Automatic sync and web startup without a connection are outside this build. The public site opens before sign-in. The current local store is for small trial datasets and separates records by Farma account on the device.
 
 Use Flutter 3.50.1:
 
