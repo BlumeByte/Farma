@@ -35,7 +35,7 @@ The v3.1 product specification and the Operations & Field Console blueprint are 
 | Field workspace | Local observation history and optional account-bound online copies, including photos. Farmers explicitly share individual online records with an approved field officer. |
 | Produce showcase | Local photo drafts. Signed-in farmers can preview, publish and withdraw listings with an optional photo and photo description. Signed-in buyers can browse and search the latest 100 published listings. Listing photos load when buyers open a listing. Seller profiles show a display name, town or district, and active listings. Buyers can send one enquiry per listing and topic, and the seller can reply once in Farma. Short videos and ongoing chat are pending |
 | Supabase | Email/password sign-in and signup with a unique username, country or territory, and international phone number. Storage, realtime, device sync and role policies are pending |
-| Operations web console | Approved officers can open assigned observations and send a follow-up. District and partner administration, reporting, verification and campaign management are pending |
+| Operations web console | Approved officers can open assigned observations and send a follow-up. District managers can grant, suspend and restore officer access and see review totals for their district. Partner administration, verification and campaign management are pending |
 | Models and safety | Farm Assistant offers preliminary assessments when the model is configured. Validated diagnosis and professional escalation workflows are pending |
 | Commercial rollout | Verification billing, advertising, payments and delivery remain pending |
 
@@ -66,3 +66,15 @@ officer’s access to the record and removes that request from both queues.
 Provision approved officers in the `public.field_officers` table through
 an administrator with the account UUID, display name and district. Normal
 signed-in users cannot add themselves to the officer directory.
+
+
+## District operations
+
+A platform administrator provisions a manager in `public.district_managers`
+using the manager's existing account UUID and the district's exact name.
+The manager signs in and opens **Observations → Online field records →
+District operations**. Approve an existing officer account by UUID, or suspend
+and restore access from the roster. The report shows per-officer and district
+totals across current review requests. Withdrawn requests are excluded.
+District managers do not gain access to farmers' observation notes or photos
+through the dashboard. Officer access is checked separately.
