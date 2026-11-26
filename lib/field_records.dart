@@ -6,6 +6,8 @@ import 'package:material_ui/material_ui.dart';
 import 'farma_app.dart';
 import 'farma_backend.dart';
 
+part 'district_operations.dart';
+
 typedef _Row = Map<String, dynamic>;
 
 class FieldRecords {
@@ -38,7 +40,8 @@ class FieldRecords {
       throw StateError('Field records request failed');
     }
     if (response.body.isEmpty) return [];
-    return (jsonDecode(response.body) as List).cast<_Row>();
+    final payload = jsonDecode(response.body);
+    return payload == null ? [] : (payload as List).cast<_Row>();
   }
 
   Future<void> save(FieldEntry entry) async {
@@ -72,7 +75,7 @@ class FieldRecordsScreen extends StatefulWidget {
 class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
   late var _data = _load();
 
-  Future<({List<_Row> records, List<_Row> reviews, List<_Row> officers})> _load() async {
+  Future<({List<_Row> records, List<_Row> reviews, List<_Row> officers, String? district})> _load() async {
     final service = widget.service;
     final results = await Future.wait([
       service._request('GET', 'cloud_observations', {
@@ -86,9 +89,18 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
         'order': 'requested_at.desc',
         'limit': '100',
       }),
-      service._request('GET', 'field_officers', {'select': 'id,display_name,district', 'order': 'display_name'}),
+      service._request('GET', 'field_officers', {'select': 'id,display_name,district', 'active': 'eq.true', 'order': 'display_name'}),
+      service._request('GET', 'district_managers', {
+        'account_id': 'eq.${service.accountId}',
+        'select': 'district',
+      }),
     ]);
-    return (records: results[0], reviews: results[1], officers: results[2]);
+    return (
+      records: results[0],
+      reviews: results[1],
+      officers: results[2],
+      district: results[3].firstOrNull?['district'] as String?,
+    );
   }
 
   void _refresh() => setState(() => _data = _load());
@@ -184,6 +196,22 @@ class _FieldRecordsScreenState extends State<FieldRecordsScreen> {
               return ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (data.district case final district?)
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => _DistrictOperations(
+                              service: widget.service,
+                              district: district,
+                            ),
+                          ),
+                        );
+                        if (mounted) _refresh();
+                      },
+                      icon: const Icon(Icons.manage_accounts_outlined),
+                      label: const Text('District operations'),
+                    ),
                   const Text('My online observations'),
                   if (data.records.isEmpty) const Text('Open a local observation and choose Save online to see it here.'),
                   for (final record in data.records)
